@@ -101,14 +101,13 @@ Copie [`.env.example`](.env.example) en `.env` (ou saisis ces variables chez ton
 L'app est un conteneur Docker (`Dockerfile`, contexte = ce dossier). Il faut un hébergeur qui garde **une instance
 toujours allumée** : l'analyse tourne en arrière-plan dans le processus, ne coupe pas la machine à l'inactivité.
 
-- **Fly.io** : `fly launch` (détecte le Dockerfile), puis `fly secrets set SUPABASE_URL=… ANTHROPIC_API_KEY=…`
-  (toutes les variables du tableau). Dans `fly.toml` : `auto_stop_machines = false`, `min_machines_running = 1`,
-  mémoire 512 Mo minimum, sonde de santé sur `/api/health`.
-- **Railway / Render** : nouveau service depuis le dépôt Git, *root directory* = `platform`, type Docker,
-  variables dans l'interface, sonde `/api/health`, port 3000.
-- **VPS** : `docker compose up -d --build` puis un reverse proxy HTTPS devant (Caddy, Traefik, Cloudflare Tunnel).
-- **Vercel** : possible (`maxDuration = 300 s` est déjà déclaré) mais une analyse « complète » peut dépasser le délai
-  d'un plan gratuit. Docker reste la voie recommandée.
+**Comparatif et recommandation** : [`docs/08-deploiement.md`](docs/08-deploiement.md). Guides pas à pas :
+
+- **[Railway](docs/deploiement/railway.md)** — le plus simple ; **offre Hobby ≈ 5 $/mois** (l'offre gratuite endort le service : déconseillée).
+- **[Coolify](docs/deploiement/coolify.md)** — logiciel gratuit sur **ton propre VPS** (UE) ; plus d'administration, coût minimal.
+- **[Netlify](docs/deploiement/netlify.md)** — **déconseillé** (fonctions limitées à 60 s, une analyse dure jusqu'à 3 min).
+- Autres hébergeurs (Fly.io, Render, VPS + `docker compose`) : non évalués ici ; mêmes exigences (une instance toujours
+  allumée, port 3000, sonde `/api/health`, pas d'arrêt automatique). Vercel : même limite de durée que Netlify.
 
 Une fois en ligne : `https://ton-domaine/api/health` doit répondre `{"ok":true}`.
 

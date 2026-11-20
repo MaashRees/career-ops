@@ -66,7 +66,7 @@ Branches (empilées, dans cet ordre) : `chore/git-workflow-rules` → `security/
 | [ ] S2-03 | Exécuter `0002_security_hardening.sql` puis `verify/0002_security_hardening.sql` | Toi | Toutes les lignes `ok = true` |
 | [ ] S2-04 | Configurer Auth : inscriptions désactivées, *Site URL*, *Redirect URLs*, 3 modèles d'e-mail | Toi (guide : README §1) | Une invitation de test mène bien à la création du mot de passe |
 | [ ] S2-05 | SMTP dédié (Resend, Brevo…) pour des e-mails fiables | Toi | E-mail d'invitation reçu en boîte principale |
-| [ ] S2-06 | Variables d'environnement + déploiement du conteneur, sonde `/api/health`, une seule instance toujours allumée | Toi (guide : README §3) | `/api/health` = `{"ok":true}` ; `/login` répond en https |
+| [ ] S2-06 | Choisir l'hébergeur ([08](08-deploiement.md)), variables d'environnement, déploiement du conteneur, sonde `/api/health`, une seule instance toujours allumée | Toi (guides : [Railway](deploiement/railway.md) ou [Coolify](deploiement/coolify.md)) | `/api/health` = `{"ok":true}` ; `/login` répond en https |
 | [ ] S2-07 | Limites de dépense mensuelles + alertes chez Anthropic et OpenRouter | Toi | Limites visibles dans les deux consoles |
 | [ ] S2-08 | Script de test de concurrence de `start_run` sur la vraie base (`scripts/db-concurrency-check.mjs`) | Assistant livre / Toi exécutes | 12 appels simultanés → exactement N démarrages (N = limite) |
 | [ ] S2-09 | Recette de sécurité avec 2 comptes de test (isolation, quota, admin, liste blanche) — checklist [05](05-securite.md#checklist-de-mise-en-ligne) | Toi + Assistant | Toutes les cases cochées |
@@ -117,7 +117,8 @@ Le scanner du moteur interroge des API publiques d'entreprises (sans IA) ; on le
 ## Backlog (non planifié)
 
 Clé IA fournie par chaque utilisateur (BYOK) ou connexion OpenRouter (OAuth) · crédits payants · PDF généré côté serveur ·
-notifications par e-mail · application installable (PWA) · graphe de contacts (si le besoin se confirme).
+notifications par e-mail · application installable (PWA) · graphe de contacts (si le besoin se confirme) ·
+support Netlify (exécution des analyses dans une fonction d'arrière-plan — voir [guide](deploiement/netlify.md)).
 
 ## Journal des décisions de planification
 
