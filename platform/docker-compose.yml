@@ -1,0 +1,12 @@
+# Lancement local ou sur un petit serveur (VPS) :
+#   cp .env.example .env   # puis remplir
+#   docker compose up -d --build
+# Place un reverse proxy HTTPS devant (Caddy, Traefik, Cloudflare Tunnel…) : Supabase
+# exige une URL de site en https pour les liens d'e-mail.
+services:
+  web:
+    build: .
+    env_file: .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

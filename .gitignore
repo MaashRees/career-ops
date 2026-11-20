@@ -316,3 +316,6 @@ web/out/
 # Regenerate with `npm run harvest:buildlist`.
 buildlist-*.yml
 buildlist-*.yml.progress.json
+
+# Ce fork versionne config/local-paths.txt (déclare platform/ comme chemin local au fork).
+!config/local-paths.txt
