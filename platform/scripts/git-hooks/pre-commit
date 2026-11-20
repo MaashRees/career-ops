@@ -9,8 +9,14 @@ fi
 
 author=$(ident_email "$(git var GIT_AUTHOR_IDENT)")
 committer=$(ident_email "$(git var GIT_COMMITTER_IDENT)")
+author_name=$(ident_name "$(git var GIT_AUTHOR_IDENT)")
+committer_name=$(ident_name "$(git var GIT_COMMITTER_IDENT)")
 if [ "$author" != "$ALLOWED_EMAIL" ] || [ "$committer" != "$ALLOWED_EMAIL" ]; then
   die "Identité refusée (auteur : ${author:-?}, committer : ${committer:-?})." \
       "Attendu : $ALLOWED_EMAIL — git config user.email $ALLOWED_EMAIL"
+fi
+if [ "$author_name" != "$ALLOWED_NAME" ] || [ "$committer_name" != "$ALLOWED_NAME" ]; then
+  die "Nom refusé (auteur : ${author_name:-?}, committer : ${committer_name:-?})." \
+      "Attendu : $ALLOWED_NAME — git config user.name \"$ALLOWED_NAME\""
 fi
 exit 0

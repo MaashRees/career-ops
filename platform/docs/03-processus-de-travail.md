@@ -45,7 +45,7 @@ principale à jour pour les branches suivantes.
 
 ## Commits
 
-- **Identité** : auteur *et* committer = `seerharley03@gmail.com`. Réglage local : `sh platform/scripts/install-git-hooks.sh`.
+- **Identité** : auteur *et* committer = `Seer MENSAH-ASSIAKOLEY <seerharley03@gmail.com>`. Réglage local : `sh platform/scripts/install-git-hooks.sh`.
 - **Aucune trace d'outil** : pas de `Co-Authored-By`, pas de trailer de session, pas de mention d'outil ou d'IA dans les
   messages, descriptions de pull request ou noms de branche.
 - **Format** : Conventional Commits — `type(périmètre): sujet` (≤ 72 caractères), puis un corps qui explique le *pourquoi*.
@@ -56,9 +56,9 @@ principale à jour pour les branches suivantes.
 
 | Hook | Refuse |
 |---|---|
-| `pre-commit` | commit sur `main`/`master` ; auteur ou committer ≠ `seerharley03@gmail.com` |
+| `pre-commit` | commit sur `main`/`master` ; nom ou adresse de l'auteur ou du committer différents de l'identité ci-dessus |
 | `commit-msg` | `Co-Authored-By`, trailer de session, mention d'outil/IA, message vide |
-| `pre-push` | push vers `main`/`master` ; nouveaux commits avec mauvaise identité ou message interdit (même créés avec `--no-verify`) |
+| `pre-push` | push vers `main`/`master` ; nouveaux commits avec mauvaise identité (nom ou adresse) ou message interdit (même créés avec `--no-verify`) |
 
 Un hook qui refuse = corriger la cause. `--no-verify` ne s'utilise pas. Les hooks sont testés
 (`platform/tests/git-hooks.test.ts`).

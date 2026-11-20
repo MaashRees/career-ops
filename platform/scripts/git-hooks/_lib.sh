@@ -22,3 +22,8 @@ is_protected() {
 ident_email() {
   printf '%s' "$1" | sed -n 's/.*<\([^>]*\)>.*/\1/p'
 }
+
+# Nom d'une identité "Nom <email> timestamp tz".
+ident_name() {
+  printf '%s' "$1" | sed -n 's/^\(.*\) <[^>]*>.*/\1/p'
+}

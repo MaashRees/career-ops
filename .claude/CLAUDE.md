@@ -13,8 +13,8 @@ Réponds à l'utilisateur **en français**. Le code, les noms de fichiers et les
    `git switch -c <type>/<sujet-court>`
    Types : `feat/`, `fix/`, `docs/`, `chore/`, `refactor/`, `test/`, `security/`. Exemple : `fix/platform-security-hardening`.
    Le nom d'une branche ne mentionne ni « claude » ni « anthropic ».
-3. **Identité : tous les commits sont au nom de `seerharley03@gmail.com`** (auteur **et** committer).
-   Avant chaque commit : `git config user.email` doit afficher cette adresse. Ne jamais modifier la configuration
+3. **Identité : tous les commits sont au nom de `Seer MENSAH-ASSIAKOLEY <seerharley03@gmail.com>`** (auteur **et**
+   committer). Avant chaque commit : `git config user.name` et `git config user.email` doivent afficher ces valeurs. Ne jamais modifier la configuration
    globale ; l'identité se règle en local avec `sh platform/scripts/install-git-hooks.sh`.
 4. **Aucune trace de l'IA dans l'historique** : pas de `Co-Authored-By`, pas de trailer `Claude-Session`, pas de
    « Generated with… », aucune mention de Claude / Anthropic / IA dans les **messages de commit, descriptions de pull

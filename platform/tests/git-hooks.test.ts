@@ -11,6 +11,7 @@ import { after, before, describe, test } from "node:test";
 
 const HOOKS = path.resolve(import.meta.dirname, "..", "scripts", "git-hooks");
 const OK_EMAIL = "seerharley03@gmail.com";
+const OK_NAME = "Seer MENSAH-ASSIAKOLEY";
 
 let work: string;
 let remote: string;
@@ -30,9 +31,9 @@ function commit(message: string, extra: string[] = []) {
   must(["add", "-A"]);
   return git(["commit", "-q", "-m", message, ...extra]);
 }
-function setIdentity(email: string) {
+function setIdentity(email: string, name = OK_NAME) {
   must(["config", "user.email", email]);
-  must(["config", "user.name", "Test"]);
+  must(["config", "user.name", name]);
 }
 
 before(() => {
@@ -61,6 +62,14 @@ describe("pre-commit", () => {
   test("accepte un commit propre sur une branche de travail", () => {
     must(["switch", "-q", "-c", "feat/ok"]);
     assert.equal(commit("feat: ajoute quelque chose").status, 0);
+  });
+  test("refuse un autre nom, même avec la bonne adresse", () => {
+    setIdentity(OK_EMAIL, "Quelqu'un d'autre");
+    const r = commit("fix: mauvais nom");
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /Nom refusé/);
+    must(["reset", "-q", "--hard"]);
+    setIdentity(OK_EMAIL);
   });
   test("refuse une autre identité", () => {
     setIdentity("claude@example.com");
@@ -105,6 +114,15 @@ describe("pre-push", () => {
   test("refuse un commit à l'identité étrangère glissé via --no-verify", () => {
     setIdentity("autre@example.com");
     assert.equal(commit("chore: contournement", ["--no-verify"]).status, 0);
+    setIdentity(OK_EMAIL);
+    const r = git(["push", "origin", "feat/ok"]);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /a pour identité/);
+    must(["reset", "-q", "--hard", "HEAD~1"]);
+  });
+  test("refuse un commit au mauvais nom glissé via --no-verify", () => {
+    setIdentity(OK_EMAIL, "Quelqu'un d'autre");
+    assert.equal(commit("chore: mauvais nom", ["--no-verify"]).status, 0);
     setIdentity(OK_EMAIL);
     const r = git(["push", "origin", "feat/ok"]);
     assert.notEqual(r.status, 0);

@@ -19,9 +19,10 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
   for c in $(git rev-list $range); do
     a=$(git log -1 --format=%ae "$c"); k=$(git log -1 --format=%ce "$c")
-    if [ "$a" != "$ALLOWED_EMAIL" ] || [ "$k" != "$ALLOWED_EMAIL" ]; then
-      die "Push refusé : le commit $(git log -1 --format=%h "$c") a pour identité $a / $k." \
-          "Corrige-le avant de pousser : attendu $ALLOWED_EMAIL."
+    an=$(git log -1 --format=%an "$c"); kn=$(git log -1 --format=%cn "$c")
+    if [ "$a" != "$ALLOWED_EMAIL" ] || [ "$k" != "$ALLOWED_EMAIL" ] || [ "$an" != "$ALLOWED_NAME" ] || [ "$kn" != "$ALLOWED_NAME" ]; then
+      die "Push refusé : le commit $(git log -1 --format=%h "$c") a pour identité $an <$a> / $kn <$k>." \
+          "Corrige-le avant de pousser : attendu $ALLOWED_NAME <$ALLOWED_EMAIL>."
     fi
     if git log -1 --format=%B "$c" | grep -Eiq "$FORBIDDEN_MESSAGE_PATTERNS"; then
       die "Push refusé : le message du commit $(git log -1 --format=%h "$c") contient une mention interdite." \
