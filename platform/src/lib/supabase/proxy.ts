@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { configProblems, isEmailAllowed, supabasePublishableKey, supabaseUrl } from "@/lib/env";
+import { configProblems, isEmailAllowed, sessionCookieOptions, supabasePublishableKey, supabaseUrl } from "@/lib/env";
 
 const PUBLIC_PREFIXES = ["/login", "/auth/", "/api/health"];
 
@@ -25,6 +25,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(supabaseUrl(), supabasePublishableKey(), {
+    cookieOptions: sessionCookieOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();

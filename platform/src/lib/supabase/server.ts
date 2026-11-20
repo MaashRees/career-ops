@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { supabasePublishableKey, supabaseUrl } from "@/lib/env";
+import { sessionCookieOptions, supabasePublishableKey, supabaseUrl } from "@/lib/env";
 
 /** Client Supabase lié à la session de l'utilisateur (cookies) : soumis à la RLS. */
 export async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(supabaseUrl(), supabasePublishableKey(), {
+    cookieOptions: sessionCookieOptions(),
     cookies: {
       getAll() {
         return cookieStore.getAll();

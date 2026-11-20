@@ -1,52 +1,22 @@
 /**
  * Valide le schéma SQL et l'isolation entre utilisateurs (RLS) sur un vrai
- * Postgres (PGlite, en mémoire). Les rôles et fonctions fournis par Supabase
- * (auth.users, auth.uid(), anon, authenticated) sont simulés par des stubs.
+ * Postgres (PGlite, en mémoire), avec le schéma FINAL (0001 + 0002).
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { before, describe, test } from "node:test";
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
+import { asRole, createDb, rejects as rejectsMsg } from "./helpers/pg.ts";
 
 const A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
-const SQL = readFileSync(new URL("../supabase/migrations/0001_init.sql", import.meta.url), "utf8");
-
-const db = new PGlite();
-
-/** Exécute fn avec les droits d'un utilisateur connecté (rôle `authenticated`, auth.uid() = uid). */
-async function as<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-  await db.exec(`set role authenticated; select set_config('app.uid','${uid}', false)`);
-  try {
-    return await fn();
-  } finally {
-    await db.exec("reset role; select set_config('app.uid','', false)");
-  }
-}
-async function rejects(fn: () => Promise<unknown>): Promise<boolean> {
-  try {
-    await fn();
-    return false;
-  } catch {
-    return true;
-  }
-}
-const count = async (sql: string, params: unknown[] = []) => ((await db.query<{ c: number }>(sql, params)).rows[0].c);
+let db: PGlite;
+const as = <T>(uid: string, fn: () => Promise<T>) => asRole(db, "authenticated", uid, fn);
+const rejects = async (fn: () => Promise<unknown>) => (await rejectsMsg(fn)) !== null;
+const count = async (sql: string, params: unknown[] = []) => (await db.query<{ c: number }>(sql, params)).rows[0].c;
 
 before(async () => {
-  await db.exec(`
-    create role anon nologin; create role authenticated nologin;
-    create schema auth;
-    create table auth.users (id uuid primary key, email text);
-    create function auth.uid() returns uuid language sql stable as
-      $$ select nullif(current_setting('app.uid', true), '')::uuid $$;
-    grant usage on schema auth to anon, authenticated;
-    grant usage on schema public to anon, authenticated;
-    alter default privileges in schema public grant all on tables to anon, authenticated;
-    insert into auth.users values ('${A}', 'a@x.fr');
-  `);
-  await db.exec(SQL);
-  await db.exec(SQL); // idempotence : la migration se rejoue sans erreur
+  // A existe AVANT les migrations (rattrapage) ; B arrive après (déclencheur d'inscription).
+  db = await createDb(undefined, `insert into auth.users values ('${A}', 'a@x.fr')`);
   await db.exec(`insert into auth.users values ('${B}', 'b@x.fr')`);
   await db.exec(`
     insert into public.applications (user_id, num, company, role) values

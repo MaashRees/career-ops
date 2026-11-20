@@ -48,3 +48,10 @@ test("knownAtsApi reconnaît Greenhouse et Lever", () => {
   assert.equal(knownAtsApi("https://jobs.lever.co/acme/123e4567-e89b-12d3-a456-426614174000")?.kind, "lever");
   assert.equal(knownAtsApi("https://example.com/jobs/1"), null);
 });
+
+test("IPv6 : 6to4, Teredo et documentation bloqués (ils peuvent embarquer une IPv4 interne)", () => {
+  for (const ip of ["2002:7f00:1::1", "2002:c0a8:101::", "2001:0:4136:e378:8000:63bf:3fff:fdd2", "2001:db8::1"]) {
+    assert.equal(isBlockedAddress(ip), true, ip);
+  }
+  assert.equal(isBlockedAddress("2606:4700:4700::1111"), false);
+});

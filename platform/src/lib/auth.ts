@@ -15,7 +15,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user || !isEmailAllowed(user.email)) return null;
-  return { id: user.id, email: user.email ?? null, isAdmin: isAdminEmail(user.email) };
+  // Admin seulement si l'adresse est CONFIRMÉE (jamais sur une adresse non vérifiée).
+  return { id: user.id, email: user.email ?? null, isAdmin: isAdminEmail(user.email) && !!user.email_confirmed_at };
 }
 
 export async function requireUser(): Promise<SessionUser> {

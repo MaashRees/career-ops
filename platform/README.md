@@ -45,8 +45,13 @@ Navigateur ─► Next.js (Docker, toujours allumé) ──► Supabase (Europe)
 ### 1. Supabase
 
 1. Crée un projet sur [supabase.com](https://supabase.com), **région Europe** (RGPD).
-2. **SQL Editor** → colle le contenu de [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) → *Run*
-   (rejouable sans risque).
+2. **SQL Editor** → exécute **dans l'ordre**, un script à la fois (rejouables sans risque) :
+   1. [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — tables et règles d'isolation (RLS) ;
+   2. [`supabase/migrations/0002_security_hardening.sql`](supabase/migrations/0002_security_hardening.sql) — quotas atomiques,
+      plafonds de taille, droits restreints (**obligatoire** : l'app appelle la fonction `start_run`).
+
+   Après chaque script, lance son contrôle en lecture seule dans [`supabase/verify/`](supabase/verify/) :
+   toutes les lignes doivent afficher `ok = true`. Les retours arrière sont dans [`supabase/rollback/`](supabase/rollback/).
 3. **Authentication → Sign In / Providers → Email** : désactive **« Allow new users to sign up »**
    (l'accès se fait uniquement sur invitation).
 4. **Authentication → URL Configuration** : *Site URL* = l'URL publique de ton app
@@ -87,7 +92,7 @@ Copie [`.env.example`](.env.example) en `.env` (ou saisis ces variables chez ton
 | `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` | Au moins une des deux. Les deux = bascule automatique en cas de panne. |
 | `LLM_PROVIDER` | `anthropic` (défaut) ou `openrouter` : fournisseur principal |
 | `ADMIN_EMAILS` | Accès à `/admin` ; pas de limite individuelle |
-| `ALLOWED_EMAILS` | Liste blanche en plus des invitations (recommandé) |
+| `ALLOWED_EMAILS` | **Obligatoire en production** : seules ces adresses peuvent utiliser l'app (le serveur refuse de démarrer sans) |
 | `DAILY_RUN_LIMIT`, `GLOBAL_DAILY_RUN_LIMIT`, `MAX_CONCURRENT_RUNS` | Quotas (défauts : 20 / 150 / 2) |
 | `MAX_TIER` | `economy`, `standard` (défaut) ou `premium` : niveau maximum choisissable |
 
@@ -139,6 +144,11 @@ du fournisseur fait foi. Pense à fixer une **limite de dépense mensuelle** dan
 
 - **Isolation** : RLS Postgres sur toutes les tables, testée sur un vrai Postgres (`tests/rls.test.ts`) : chacun ne voit,
   ne modifie et ne supprime que ses lignes ; personne ne peut fabriquer un rapport ou contourner un quota.
+- **Quotas atomiques** : le contrôle et la création d'une analyse se font dans une seule transaction SQL (`start_run`) ;
+  des requêtes simultanées ne peuvent pas dépasser la limite. Plafonds de taille en base contre l'accès direct à l'API.
+- **Navigateur** : CSP stricte, HSTS, anti-framing, cookies de session `httpOnly`, aucune image distante dans le contenu
+  généré (anti-exfiltration), déconnexion protégée contre le CSRF, tentatives de connexion limitées.
+- **Détail complet** : [`docs/05-securite.md`](docs/05-securite.md).
 - **Clés** : uniquement dans les variables d'environnement du serveur ; jamais renvoyées au navigateur ni écrites dans
   l'image Docker ; les messages d'erreur ne les recopient pas.
 - **Accès** : invitations + liste blanche optionnelle ; la connexion par lien n'envoie jamais de mail à une adresse inconnue
@@ -166,7 +176,7 @@ cp .env.example .env      # remplir avec un projet Supabase de test
 npm ci
 npm run dev               # http://localhost:3000
 npm run typecheck
-npm test                  # 72 tests : parsing, SSRF, prompts, IA mockée, flux complet, quotas, RLS
+npm test                  # 120+ tests : parsing, SSRF, prompts, IA mockée, flux complet, RLS et quotas sur Postgres, garde-fous de sécurité
 ```
 
 ## Limites connues / pistes

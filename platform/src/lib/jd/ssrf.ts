@@ -60,6 +60,9 @@ export function isBlockedAddress(address: string): boolean {
     if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10 (link-local)
     if ((first & 0xff00) === 0xff00) return true; // multicast
     if (ip.startsWith("64:ff9b:")) return true; // NAT64
+    if (first === 0x2002) return true; // 6to4 : embarque une IPv4 arbitraire (interne comprise)
+    if (/^2001:0{0,4}:/.test(ip)) return true; // Teredo (2001::/32)
+    if (/^2001:0?db8:/.test(ip)) return true; // documentation (2001:db8::/32)
     return false;
   }
   return true; // pas une adresse IP valide : on refuse par prudence

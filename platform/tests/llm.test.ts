@@ -116,6 +116,22 @@ test("OpenRouter seul : requête correcte", async () => {
   assert.equal(calls[0].body.model, "anthropic/claude-haiku-5.5");
 });
 
+test("OpenRouter : refuse les fournisseurs qui conservent les prompts (data_collection=deny)", async () => {
+  delete process.env.ANTHROPIC_API_KEY;
+  const ok = () => json(200, { choices: [{ message: { content: "ok" }, finish_reason: "stop" }], usage: {} });
+  const a = mockFetch([ok]);
+  await complete(REQ, a.fn);
+  assert.deepEqual(a.calls[0].body.provider, { data_collection: "deny" });
+  process.env.OPENROUTER_DATA_COLLECTION = "allow";
+  try {
+    const b = mockFetch([ok]);
+    await complete(REQ, b.fn);
+    assert.deepEqual(b.calls[0].body.provider, { data_collection: "allow" });
+  } finally {
+    delete process.env.OPENROUTER_DATA_COLLECTION;
+  }
+});
+
 test("aucune clé → erreur claire", async () => {
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.OPENROUTER_API_KEY;

@@ -139,6 +139,25 @@ export function supabaseServiceKey(): string {
   return clean(process.env.SUPABASE_SERVICE_ROLE_KEY) || clean(process.env.SUPABASE_SECRET_KEY);
 }
 
+export function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+/** Autorise explicitement tout compte Supabase (déconseillé : voir ALLOWED_EMAILS). */
+export function allowAnySupabaseUser(): boolean {
+  return clean(process.env.ALLOW_ANY_SUPABASE_USER) === "1";
+}
+
+/** Vie privée OpenRouter : refuse les fournisseurs qui conservent / réutilisent les prompts (défaut : deny). */
+export function openRouterDataCollection(): "deny" | "allow" {
+  return clean(process.env.OPENROUTER_DATA_COLLECTION).toLowerCase() === "allow" ? "allow" : "deny";
+}
+
+/** Options des cookies de session : inaccessibles au JavaScript, https seulement en production. */
+export function sessionCookieOptions(): { httpOnly: true; secure: boolean; sameSite: "lax"; path: "/" } {
+  return { httpOnly: true, secure: siteUrl().startsWith("https://"), sameSite: "lax", path: "/" };
+}
+
 /** Problèmes de configuration (noms des variables manquantes, jamais de valeurs). */
 export function configProblems(): string[] {
   const problems: string[] = [];
@@ -146,5 +165,17 @@ export function configProblems(): string[] {
   if (!supabasePublishableKey()) problems.push("SUPABASE_PUBLISHABLE_KEY (ou SUPABASE_ANON_KEY)");
   if (!supabaseServiceKey()) problems.push("SUPABASE_SERVICE_ROLE_KEY");
   if (!primaryProvider()) problems.push("ANTHROPIC_API_KEY ou OPENROUTER_API_KEY");
+
+  // En production on « échoue fermé » : mieux vaut un site qui refuse de démarrer qu'un site ouvert à tous.
+  if (isProduction()) {
+    const site = clean(process.env.SITE_URL) || clean(process.env.NEXT_PUBLIC_SITE_URL);
+    if (!site) problems.push("SITE_URL");
+    else if (!/^https:\/\//i.test(site) && !/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(site)) {
+      problems.push("SITE_URL (doit commencer par https://)");
+    }
+    if (allowedEmails().length === 0 && !allowAnySupabaseUser()) {
+      problems.push("ALLOWED_EMAILS (ou ALLOW_ANY_SUPABASE_USER=1 à tes risques)");
+    }
+  }
   return problems;
 }

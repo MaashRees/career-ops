@@ -1,10 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  dailyRunLimit,
-  globalDailyRunLimit,
-  isAdminEmail,
-  maxConcurrentRuns,
-} from "./env.ts";
+import { dailyRunLimit } from "./env.ts";
 
 export class QuotaError extends Error {
   readonly code: "user_daily" | "global_daily" | "concurrent";
@@ -18,9 +13,9 @@ export class QuotaError extends Error {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Un appel compte dans le quota s'il a coûté quelque chose : il tourne encore,
- * s'est terminé, ou a échoué APRÈS avoir contacté le fournisseur IA (provider
- * renseigné). Une erreur « URL illisible » ne consomme rien.
+ * Les quotas sont APPLIQUÉS par la fonction SQL start_run() (migration 0002), de façon atomique.
+ * Ce module ne sert qu'à l'affichage (« x / 20 analyses ») et à traduire ses erreurs.
+ * Une analyse compte si elle coûte : en cours, terminée, ou échouée APRÈS un appel IA (provider renseigné).
  */
 const COUNTED = "status.neq.failed,provider.not.is.null";
 
@@ -39,23 +34,16 @@ export async function quotaState(db: SupabaseClient, userId: string): Promise<Qu
   return { usedToday: used ?? 0, limit: dailyRunLimit(), running: running ?? 0 };
 }
 
-/** Lève QuotaError si l'utilisateur (ou le serveur) a atteint une limite. `db` = client service role. */
-export async function assertQuota(db: SupabaseClient, userId: string, email: string | null): Promise<void> {
-  const admin = isAdminEmail(email);
-  const state = await quotaState(db, userId);
-
-  if (state.running >= maxConcurrentRuns()) {
-    throw new QuotaError("concurrent", "Une analyse est déjà en cours : attends qu'elle se termine.");
+/** Traduit l'erreur levée par la fonction SQL start_run() en erreur lisible (ou null si ce n'en est pas une). */
+export function quotaErrorFromMessage(message: string, limit = dailyRunLimit()): QuotaError | null {
+  if (message.includes("quota:concurrent")) {
+    return new QuotaError("concurrent", "Une analyse est déjà en cours : attends qu'elle se termine.");
   }
-  if (!admin && state.limit > 0 && state.usedToday >= state.limit) {
-    throw new QuotaError("user_daily", `Limite atteinte : ${state.limit} analyses par 24 h. Réessaie plus tard.`);
+  if (message.includes("quota:user_daily")) {
+    return new QuotaError("user_daily", `Limite atteinte : ${limit} analyses par 24 h. Réessaie plus tard.`);
   }
-  const globalLimit = globalDailyRunLimit();
-  if (globalLimit > 0) {
-    const since = new Date(Date.now() - DAY_MS).toISOString();
-    const { count } = await db.from("runs").select("id", { count: "exact", head: true }).gte("created_at", since).or(COUNTED);
-    if ((count ?? 0) >= globalLimit) {
-      throw new QuotaError("global_daily", "Le plafond quotidien du service est atteint. Réessaie demain.");
-    }
+  if (message.includes("quota:global_daily")) {
+    return new QuotaError("global_daily", "Le plafond quotidien du service est atteint. Réessaie demain.");
   }
+  return null;
 }

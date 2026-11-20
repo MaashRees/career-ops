@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { QuotaError, assertQuota } from "../src/lib/quota.ts";
 import { executeRun, sweepIfStale, STALE_RUN_MS } from "../src/lib/runs.ts";
 import type { Run } from "../src/lib/types.ts";
 import { FakeDb } from "./helpers/fake-db.ts";
@@ -25,7 +24,7 @@ ${extra}
 | Champ | Valeur |
 `;
 
-const KEYS = ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "LLM_PROVIDER", "LLM_FALLBACK", "DAILY_RUN_LIMIT", "GLOBAL_DAILY_RUN_LIMIT", "MAX_CONCURRENT_RUNS", "ADMIN_EMAILS"];
+const KEYS = ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "LLM_PROVIDER", "LLM_FALLBACK"];
 const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
 const realFetch = globalThis.fetch;
 let anthropicBodies: any[] = [];
@@ -264,56 +263,4 @@ test("sweepIfStale marque échouée une analyse bloquée trop longtemps", async 
   const swept = await sweepIfStale(asClient(db), row as unknown as Run);
   assert.equal(swept.status, "failed");
   assert.equal(runRow(db, id).error_code, "stale");
-});
-
-// ───────────────────────── quotas ─────────────────────────
-
-function seedRuns(db: FakeDb, userId: string, n: number, extra: Record<string, unknown> = {}) {
-  for (let i = 0; i < n; i++) newRunWith(db, userId, extra);
-}
-function newRunWith(db: FakeDb, userId: string, extra: Record<string, unknown>) {
-  db.tables.runs.push({ id: crypto.randomUUID(), user_id: userId, kind: "evaluate", status: "done", provider: "anthropic", created_at: new Date().toISOString(), ...extra });
-}
-
-test("quota par utilisateur : bloque au-delà de la limite, pas les autres", async () => {
-  process.env.DAILY_RUN_LIMIT = "3";
-  const db = new FakeDb();
-  seedRuns(db, USER, 3);
-  await assert.rejects(assertQuota(asClient(db), USER, "x@y.fr"), (e: unknown) => e instanceof QuotaError && e.code === "user_daily");
-  await assert.doesNotReject(assertQuota(asClient(db), OTHER, "z@y.fr"));
-});
-
-test("quota : un échec sans appel IA (provider null) ne consomme rien", async () => {
-  process.env.DAILY_RUN_LIMIT = "2";
-  const db = new FakeDb();
-  seedRuns(db, USER, 5, { status: "failed", provider: null });
-  await assert.doesNotReject(assertQuota(asClient(db), USER, "x@y.fr"));
-  seedRuns(db, USER, 2, { status: "failed", provider: "anthropic" }); // échec APRÈS appel IA : compté
-  await assert.rejects(assertQuota(asClient(db), USER, "x@y.fr"), QuotaError);
-});
-
-test("quota : l'administrateur n'est pas limité par la limite individuelle", async () => {
-  process.env.DAILY_RUN_LIMIT = "1";
-  process.env.ADMIN_EMAILS = "moi@example.com";
-  const db = new FakeDb();
-  seedRuns(db, USER, 10);
-  await assert.doesNotReject(assertQuota(asClient(db), USER, "MOI@example.com"));
-});
-
-test("quota global : protège les clés quel que soit l'utilisateur", async () => {
-  process.env.DAILY_RUN_LIMIT = "0";
-  process.env.GLOBAL_DAILY_RUN_LIMIT = "4";
-  const db = new FakeDb();
-  seedRuns(db, USER, 2);
-  seedRuns(db, OTHER, 2);
-  await assert.rejects(assertQuota(asClient(db), USER, "x@y.fr"), (e: unknown) => e instanceof QuotaError && e.code === "global_daily");
-});
-
-test("analyses simultanées plafonnées", async () => {
-  process.env.DAILY_RUN_LIMIT = "0";
-  process.env.GLOBAL_DAILY_RUN_LIMIT = "0";
-  process.env.MAX_CONCURRENT_RUNS = "1";
-  const db = new FakeDb();
-  seedRuns(db, USER, 1, { status: "running", provider: null });
-  await assert.rejects(assertQuota(asClient(db), USER, "x@y.fr"), (e: unknown) => e instanceof QuotaError && e.code === "concurrent");
 });

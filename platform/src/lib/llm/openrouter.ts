@@ -1,4 +1,4 @@
-import { modelFor, siteUrl } from "../env.ts";
+import { modelFor, openRouterDataCollection, siteUrl } from "../env.ts";
 import { postJson } from "./http.ts";
 import { LlmError, type LlmRequest, type LlmResult } from "./types.ts";
 
@@ -30,6 +30,8 @@ export async function callOpenRouter(
     {
       model,
       max_tokens: req.maxTokens,
+      // Vie privée : n'envoyer le CV qu'à des fournisseurs qui ne conservent / n'entraînent pas sur les prompts.
+      provider: { data_collection: openRouterDataCollection() },
       messages: [
         {
           role: "system",

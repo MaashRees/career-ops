@@ -17,7 +17,10 @@ function safeNext(next: string | null, fallback: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType | null;
+  const rawType = searchParams.get("type");
+  // Liste fermée : seuls les types réellement utilisés par nos e-mails.
+  const ALLOWED_TYPES: EmailOtpType[] = ["invite", "email", "magiclink", "recovery", "signup"];
+  const type = ALLOWED_TYPES.find((t) => t === rawType) ?? null;
   const code = searchParams.get("code");
   const base = siteUrl();
 

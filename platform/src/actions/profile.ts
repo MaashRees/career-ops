@@ -13,6 +13,7 @@ import type { FormState } from "./auth";
 
 const MAX_CV_CHARS = 60_000;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const MAX_PDF_PAGES = 15;
 
 const str = (fd: FormData, key: string, max = 500): string => String(fd.get(key) ?? "").trim().slice(0, max);
 const lines = (value: string, maxItems = 12): string[] =>
@@ -91,6 +92,7 @@ export async function uploadCv(_prev: FormState, formData: FormData): Promise<Fo
   try {
     if (isPdf) {
       const pdf = await getDocumentProxy(new Uint8Array(await file.arrayBuffer()));
+      if (pdf.numPages > MAX_PDF_PAGES) return { error: `PDF trop long (${MAX_PDF_PAGES} pages maximum pour un CV).` };
       text = (await extractText(pdf, { mergePages: true })).text;
     } else {
       text = await file.text();
