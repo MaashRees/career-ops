@@ -109,6 +109,9 @@ MAX_TIER=standard
 
 ## Tests après déploiement (tous hébergeurs)
 
+Le plus simple : `sh platform/scripts/post-deploy-check.sh https://TON-URL` (lecture seule ; affiche ✓/✗ et renvoie un code d'erreur
+en cas d'échec). Il fait les contrôles ci-dessous et vérifie aussi HTTPS et la redirection http → https.
+
 ```bash
 curl -s https://TON-URL/api/health                       # {"ok":true}
 curl -s -o /dev/null -w "%{http_code}\n" https://TON-URL/    # 307 (redirige vers /login)

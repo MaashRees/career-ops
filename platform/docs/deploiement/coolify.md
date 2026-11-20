@@ -9,6 +9,34 @@ un nom de domaine (avec accès à sa zone DNS) et un compte GitHub.
 
 > Sources : documentation Coolify lue le 20/11/2026. Les points non confirmés sont marqués *(à vérifier)*.
 
+## Parcours rapide — tu as déjà un VPS avec Coolify
+
+Tu peux **sauter les sections 1 et 2** (serveur et installation). Fais dans l'ordre :
+
+| # | À faire | Où |
+|---|---|---|
+| 0 | **Instantané (snapshot) du VPS** chez ton fournisseur, avant de toucher à quoi que ce soit | fournisseur |
+| 1 | **Contrôle du serveur** : copie [`platform/scripts/coolify-preflight.sh`](../../scripts/coolify-preflight.sh) sur le VPS et lance `sudo sh coolify-preflight.sh jobs.ton-domaine coolify.ton-domaine` (lecture seule : RAM, disque, Docker, ports, SSH, DNS). Corrige les ✗ ; relis les `!` | VPS |
+| 2 | Vérifier **Coolify** : version à jour, tableau de bord servi en HTTPS sur son domaine, ports `8000/6001/6002` fermés, compte admin au mot de passe fort, copie de `/data/coolify/source/.env` hors du serveur | [§3](#3-pare-feu-et-domaine-du-tableau-de-bord) |
+| 3 | DNS : enregistrement **A** `jobs.ton-domaine` → IP du VPS | registrar |
+| 4 | Source GitHub (GitHub App) si elle n'existe pas encore | [§4](#4-connecter-github-dépôt-privé) |
+| 5 | Créer l'application (Base Directory `/platform`, port 3000) | [§5](#5-créer-lapplication) |
+| 6 | Variables — **toutes en « Runtime only »** | [§6](#6-variables-denvironnement--point-de-sécurité-important) |
+| 7 | Sonde de santé `/api/health` | [§7](#7-sonde-de-santé) |
+| 8 | Domaine `https://jobs.ton-domaine` + `SITE_URL` + réglages Supabase | [§8](#8-domaine-de-lapplication-et-site_url) |
+| 9 | Déploiement automatique, limites de ressources | [§9](#9-déploiement-automatique), [§10](#10-limiter-les-ressources-conseillé) |
+| 10 | **Contrôle de l'application** : `sh platform/scripts/post-deploy-check.sh https://jobs.ton-domaine` — tout doit être ✓ | ton poste |
+
+**À rassembler avant de commencer** (rien de tout cela ne doit être collé dans une conversation ou un fichier du dépôt) :
+le nom de domaine de l'application et l'accès à sa zone DNS · l'URL et les clés de ton projet Supabase (scripts `0001` et `0002`
+déjà exécutés) · tes clés Anthropic et/ou OpenRouter · la liste des e-mails autorisés · l'accès GitHub au dépôt.
+
+**Particularités d'un serveur qui héberge déjà autre chose** :
+- Mémoire : l'application veut ≥ 512 Mo en plus. Le *build* de Next.js est gourmand : sur un petit serveur sans swap il peut
+  échouer (« killed » dans les journaux de déploiement) → ajoute du swap ou une machine de 2 Go minimum.
+- Mets une **limite de mémoire** (`1g`) à l'application pour qu'elle ne puisse pas affamer les autres ([§10](#10-limiter-les-ressources-conseillé)).
+- Un serveur partagé élargit la surface d'attaque : isole bien les domaines et ne réutilise aucun secret entre applications.
+
 ## 1. Le serveur (VPS)
 
 | | |
@@ -134,7 +162,8 @@ Protège les autres applications du serveur d'une dérive de mémoire.
 
 ## 12. Vérifier
 
-[Tests après déploiement](../08-deploiement.md#tests-après-déploiement-tous-hébergeurs), puis la
+`sh platform/scripts/post-deploy-check.sh https://jobs.ton-domaine` (voir les
+[tests après déploiement](../08-deploiement.md#tests-après-déploiement-tous-hébergeurs)), puis la
 [checklist de mise en ligne](../05-securite.md#checklist-de-mise-en-ligne).
 
 ## Sécurité propre à cette option (tu es responsable du serveur)
