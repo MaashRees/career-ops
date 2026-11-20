@@ -3,3 +3,6 @@
 
 # Plateforme web multi-comptes (Next.js + Supabase) construite sur le moteur.
 platform/
+
+# Règles de travail propres à ce fork (Git, identité, base de données) — voir ce fichier.
+.claude/CLAUDE.md

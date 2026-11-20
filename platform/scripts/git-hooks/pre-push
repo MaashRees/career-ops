@@ -1,0 +1,32 @@
+#!/bin/sh
+# Refuse tout push vers une branche protégée, et vérifie les NOUVEAUX commits poussés
+# (identité + message). stdin : "<ref locale> <sha local> <ref distante> <sha distant>".
+. "$(dirname "$0")/_lib.sh"
+ZERO=0000000000000000000000000000000000000000
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "$local_ref" ] && continue
+  short=${remote_ref#refs/heads/}
+  if is_protected "$short"; then
+    die "Push refusé vers « $short »." "Pousse une branche de travail puis ouvre une pull request."
+  fi
+  [ "$local_sha" = "$ZERO" ] && continue   # suppression de branche distante
+
+  if [ "$remote_sha" = "$ZERO" ]; then
+    range="$local_sha --not --remotes"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  for c in $(git rev-list $range); do
+    a=$(git log -1 --format=%ae "$c"); k=$(git log -1 --format=%ce "$c")
+    if [ "$a" != "$ALLOWED_EMAIL" ] || [ "$k" != "$ALLOWED_EMAIL" ]; then
+      die "Push refusé : le commit $(git log -1 --format=%h "$c") a pour identité $a / $k." \
+          "Corrige-le avant de pousser : attendu $ALLOWED_EMAIL."
+    fi
+    if git log -1 --format=%B "$c" | grep -Eiq "$FORBIDDEN_MESSAGE_PATTERNS"; then
+      die "Push refusé : le message du commit $(git log -1 --format=%h "$c") contient une mention interdite." \
+          "Pas de Co-Authored-By ni de mention de Claude/Anthropic."
+    fi
+  done
+done
+exit 0

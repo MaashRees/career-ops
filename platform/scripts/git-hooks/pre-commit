@@ -1,0 +1,16 @@
+#!/bin/sh
+# Refuse de committer sur une branche protégée ou avec une autre identité.
+. "$(dirname "$0")/_lib.sh"
+
+branch=$(git symbolic-ref --short -q HEAD || echo "")
+if [ -n "$branch" ] && is_protected "$branch"; then
+  die "Commit refusé sur « $branch »." "Crée une branche : git switch -c type/sujet-court"
+fi
+
+author=$(ident_email "$(git var GIT_AUTHOR_IDENT)")
+committer=$(ident_email "$(git var GIT_COMMITTER_IDENT)")
+if [ "$author" != "$ALLOWED_EMAIL" ] || [ "$committer" != "$ALLOWED_EMAIL" ]; then
+  die "Identité refusée (auteur : ${author:-?}, committer : ${committer:-?})." \
+      "Attendu : $ALLOWED_EMAIL — git config user.email $ALLOWED_EMAIL"
+fi
+exit 0
