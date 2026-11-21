@@ -83,7 +83,7 @@ describe("post-deploy-check.sh", () => {
 });
 
 // Faux « Supabase » : se comporte comme PostgREST selon le profil de schéma demandé.
-function fakeSupabase(mode: "good" | "public-exposed" | "schema-not-exposed" | "anon-readable") {
+function fakeSupabase(mode: "good" | "public-exposed" | "schema-not-exposed" | "anon-readable" | "rpc-open" | "rpc-404") {
   return (req: IncomingMessage, res: ServerResponse) => {
     const profile = String(req.headers["accept-profile"] ?? req.headers["content-profile"] ?? "public");
     const url = req.url ?? "";
@@ -92,6 +92,18 @@ function fakeSupabase(mode: "good" | "public-exposed" | "schema-not-exposed" | "
     if (profile === "public") return mode === "public-exposed" ? json(200, []) : json(404, { code: "PGRST205" });
     if (mode === "schema-not-exposed") return json(406, { code: "PGRST106" });
     if (mode === "anon-readable") return json(200, [{ id: 1 }]);
+    if (url.startsWith("/rest/v1/rpc/start_run")) {
+      // Comportement de PostgREST : un corps incomplet donne 404 quelles que soient les permissions.
+      let body = "";
+      req.on("data", (d) => (body += d));
+      return void req.on("end", () => {
+        const complete = body.includes("p_max_concurrent");
+        if (mode === "rpc-404") return json(404, { code: "PGRST202" });
+        if (!complete) return json(404, { code: "PGRST202" });
+        if (mode === "rpc-open") return json(409, { code: "23503", message: "violates foreign key constraint" });
+        return json(401, { code: "42501", message: "permission denied for function start_run" });
+      });
+    }
     return json(401, { code: "42501", message: "permission denied for schema jobhunter" });
   };
 }
@@ -117,6 +129,22 @@ describe("supabase-exposure-check.sh", () => {
     assert.equal(status, 1);
     assert.match(out, /PAS exposé/);
     assert.match(out, /Exposed schemas/);
+  });
+  test("start_run appelable par un anonyme (échec sur la clé étrangère) : DÉTECTÉ grâce aux 7 paramètres", async () => {
+    const { status, out } = await run(await start(fakeSupabase("rpc-open")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 1);
+    assert.match(out, /start_run semble appelable/);
+  });
+  test("start_run fermée : 401 avec les paramètres complets", async () => {
+    const { status, out } = await run(await start(fakeSupabase("good")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 0, out);
+    assert.match(out, /start_run non appelable par un anonyme \(401\)/);
+  });
+  test("404 : contrôle non concluant signalé par un avertissement (jamais un faux ✓)", async () => {
+    const { status, out } = await run(await start(fakeSupabase("rpc-404")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 0, out);
+    assert.match(out, /non concluant/);
+    assert.doesNotMatch(out, /✓[^\n]*start_run/);
   });
   test("données lisibles par un anonyme : échec", async () => {
     const { status, out } = await run(await start(fakeSupabase("anon-readable")), EXPOSURE, ["cle-publique"]);

@@ -10,6 +10,7 @@ URL=${URL%/}
 FAIL=0
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 ko()   { printf '  \033[31m✗\033[0m %s\n' "$1"; FAIL=$((FAIL+1)); }
+warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 code() { curl -sS -o /dev/null -m 20 -w '%{http_code}' -H "apikey: $KEY" "$@" 2>/dev/null || echo "000"; }
 TABLES='profiles|user_settings|applications|reports|documents|runs'
 
@@ -33,8 +34,17 @@ for t in applications user_settings runs profiles; do
     *) ok "GET /$t ($SCHEMA) → $c (non lisible)" ;;
   esac
 done
-c=$(code -X POST -H "Content-Type: application/json" -H "Content-Profile: $SCHEMA" -d '{}' "$URL/rest/v1/rpc/start_run")
-case "$c" in 200|204) ko "start_run appelable par un anonyme ($c) !" ;; *) ok "start_run non appelable par un anonyme ($c)" ;; esac
+# On envoie les 7 paramètres attendus : avec un corps incomplet, l'API répond « 404 fonction introuvable » même si la
+# fonction serait appelable, ce qui rendrait le contrôle sans valeur. L'utilisateur fourni n'existe pas : si, par erreur,
+# l'appel passait, il échouerait sur la clé étrangère (aucune ligne créée).
+RPC='{"p_user_id":"00000000-0000-0000-0000-000000000000","p_kind":"evaluate","p_input":{},"p_application_id":null,"p_user_limit":0,"p_global_limit":0,"p_max_concurrent":1}'
+c=$(code -X POST -H "Content-Type: application/json" -H "Content-Profile: $SCHEMA" -d "$RPC" "$URL/rest/v1/rpc/start_run")
+case "$c" in
+  200|204|409|400) ko "start_run semble appelable par un anonyme ($c) : la fonction est exécutée (échec sur la clé étrangère) !" ;;
+  401|403) ok "start_run non appelable par un anonyme ($c)" ;;
+  404) warn "start_run → 404 : contrôle non concluant (fonction introuvable pour ce rôle). Fais foi : verify/0003 « start_run NON appelable par anon / authenticated »" ;;
+  *) ok "start_run non appelable par un anonyme ($c)" ;;
+esac
 c=$(code -X POST -H "Content-Type: application/json" -H "Content-Profile: $SCHEMA" -d '{"user_id":"00000000-0000-0000-0000-000000000000","kind":"evaluate"}' "$URL/rest/v1/runs")
 case "$c" in 200|201|204) ko "un anonyme peut écrire dans runs ($c) !" ;; *) ok "écriture anonyme dans runs refusée ($c)" ;; esac
 
