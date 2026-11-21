@@ -45,7 +45,7 @@ export function languageName(code: string): string {
 export function outputLanguageInstruction(code: string): string {
   const lang = languageName(code);
   return [
-    `Write all human-facing output in ${lang}, including the full A–G`,
+    `Write all human-facing output in ${lang}, including the full A-G`,
     `evaluation, regardless of the language of these instructions or the job`,
     `description. Keep market-specific terms when relevant, but explain them in ${lang}`,
     `when needed. The configured output language always wins over the job description's language.`,

@@ -4,7 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { evaluateAnyway } from "@/actions/runs";
 import { acceptImportedCv } from "@/actions/profile";
 import { ActionForm, SubmitButton } from "@/components/forms";
+import { Markdown } from "@/components/Markdown";
 import { RunPoller } from "@/components/RunPoller";
+import { splitVerification } from "@/lib/engine/cv-import";
 import { requireUser } from "@/lib/auth";
 import { sweepIfStale } from "@/lib/runs";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -54,18 +56,29 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {run.status === "done" && run.kind === "cv_import" && (
+      {run.status === "done" && run.kind === "cv_import" && (() => {
+        // Le CV et les notes de contrôle sont enregistrés ensemble : seul le CV part dans le formulaire.
+        const { markdown, notes } = splitVerification(run.output ?? "");
+        return (
         <section className="card space-y-3">
           <p className="alert alert-warn">
-            Voici ton CV converti en markdown. Relis-le et corrige si besoin : rien n'est remplacé tant que tu n'as pas validé.
+            Voici ton CV converti en markdown, puis vérifié automatiquement contre le texte de ton fichier. Relis-le et corrige
+            si besoin : rien n'est remplacé tant que tu n'as pas validé.
           </p>
+          {notes && (
+            <details open className="rounded-lg border border-border p-3">
+              <summary className="cursor-pointer font-semibold">Ce qui a été contrôlé et corrigé</summary>
+              <div className="mt-2"><Markdown>{notes}</Markdown></div>
+            </details>
+          )}
           <ActionForm action={acceptImportedCv.bind(null, run.id)}>
             <label className="label" htmlFor="cv_md">CV (markdown)</label>
-            <textarea id="cv_md" name="cv_md" rows={24} defaultValue={run.output ?? ""} className="input font-mono text-sm" />
+            <textarea id="cv_md" name="cv_md" rows={24} defaultValue={markdown} className="input font-mono text-sm" />
             <SubmitButton pending="Enregistrement…">Utiliser ce CV</SubmitButton>
           </ActionForm>
         </section>
-      )}
+        );
+      })()}
     </div>
   );
 }

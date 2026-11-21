@@ -5,6 +5,8 @@ import { numbersNotInSource } from "./engine/facts.ts";
 import {
   buildCoverLetterSystemPrompt,
   buildCvImportSystemPrompt,
+  buildCvVerifySystemPrompt,
+  buildCvVerifyUserMessage,
   buildDocumentUserMessage,
   buildEvaluationSystemPrompt,
   buildEvaluationUserMessage,
@@ -13,7 +15,9 @@ import {
 } from "./engine/prompts.ts";
 import { parseReport, unwrapFence, validateReport, withJdArchive } from "./engine/report.ts";
 import { JdError, fetchPosting, urlKey } from "./jd/fetch.ts";
-import { complete, LlmError, type LlmResult } from "./llm/index.ts";
+import { normalizeDashes } from "./text.ts";
+import { complete, LlmError, type LlmResult, type LlmUsage } from "./llm/index.ts";
+import { buildNotes, composeOutput, crossCheckNumbers, parseVerified } from "./engine/cv-import.ts";
 import type { Run, RunKind } from "./types.ts";
 
 /** Échec attendu, avec un message déjà prêt à afficher à l'utilisateur. */
@@ -39,22 +43,28 @@ async function patchRun(db: Db, id: string, patch: Record<string, unknown>) {
   if (error) console.error(`[runs] mise à jour de ${id} impossible : ${error.message}`);
 }
 
-function usagePatch(res: LlmResult) {
+/** `base` : consommation déjà enregistrée par un appel précédent de la MÊME analyse (elle s'additionne). */
+function usagePatch(res: LlmResult, base?: LlmUsage) {
   return {
     provider: res.provider,
     model: res.model,
-    input_tokens: res.usage.input,
-    output_tokens: res.usage.output,
-    cache_read_tokens: res.usage.cacheRead,
-    cache_write_tokens: res.usage.cacheWrite,
+    input_tokens: res.usage.input + (base?.input ?? 0),
+    output_tokens: res.usage.output + (base?.output ?? 0),
+    cache_read_tokens: res.usage.cacheRead + (base?.cacheRead ?? 0),
+    cache_write_tokens: res.usage.cacheWrite + (base?.cacheWrite ?? 0),
   };
 }
 
 /** Appel IA qui enregistre toujours la consommation, même si le résultat est ensuite rejeté. */
-async function callModel(db: Db, runId: string, req: Parameters<typeof complete>[0]): Promise<LlmResult> {
+async function callModel(
+  db: Db,
+  runId: string,
+  req: Parameters<typeof complete>[0],
+  base?: LlmUsage,
+): Promise<LlmResult> {
   try {
     const res = await complete(req);
-    await patchRun(db, runId, usagePatch(res));
+    await patchRun(db, runId, usagePatch(res, base));
     return res;
   } catch (e) {
     if (e instanceof LlmError) {
@@ -176,7 +186,8 @@ async function runEvaluate(db: Db, run: Run) {
     allowTruncated: true,
   });
 
-  let text = unwrapFence(res.text);
+  // Aucun tiret long dans ce qui est généré (l'offre archivée, elle, reste telle quelle).
+  let text = normalizeDashes(unwrapFence(res.text));
   const verdict = validateReport(text);
   if (!verdict.ok && res.truncated) {
     // Coupé AVANT la note : inexploitable. L'analyse a déjà coûté, on le dit clairement.
@@ -277,7 +288,7 @@ async function runDocument(db: Db, run: Run, kind: "cover_letter" | "tailored_cv
     maxTokens: kind === "cover_letter" ? 2_500 : 8_000,
   });
 
-  const markdown = unwrapFence(res.text);
+  const markdown = normalizeDashes(unwrapFence(res.text));
   if (markdown.length < 200) throw new RunFailure("bad_document", "Le document généré est trop court. Relance-le.");
   const warnings = kind === "tailored_cv" ? numbersNotInSource(markdown, settings.cv_md) : [];
 
@@ -300,17 +311,52 @@ async function runDocument(db: Db, run: Run, kind: "cover_letter" | "tailored_cv
 // ───────────────────────── import de CV ─────────────────────────
 
 async function runCvImport(db: Db, run: Run) {
-  const text = String((run.input as { text?: string }).text ?? "").trim();
-  if (text.length < 100) throw new RunFailure("cv_short", "Le texte du CV est vide ou trop court.");
-  const res = await callModel(db, run.id, {
+  const raw = String((run.input as { text?: string }).text ?? "").trim();
+  if (raw.length < 100) throw new RunFailure("cv_short", "Le texte du CV est vide ou trop court.");
+  const settings = await loadSettings(db, run.user_id);
+
+  // Passe 1 : conversion en markdown (modèle économique, tâche simple).
+  const first = await callModel(db, run.id, {
     system: buildCvImportSystemPrompt(),
-    user: `<cv_text>\n${text.slice(0, 80_000)}\n</cv_text>`,
+    user: `<cv_text>\n${raw.slice(0, 80_000)}\n</cv_text>`,
     tier: "economy",
     maxTokens: 8_000,
   });
+  let markdown = normalizeDashes(unwrapFence(first.text));
+
+  // Passe 2 : vérification contre le texte brut (réparation des dégâts d'extraction), avec le niveau choisi par l'utilisateur.
+  // Si elle échoue ou renvoie un résultat suspect, on garde la passe 1 et on le dit : l'import n'échoue pas pour ça.
+  let aiNotes: string | null = null;
+  let failure = "";
+  try {
+    const second = await callModel(
+      db,
+      run.id,
+      {
+        system: buildCvVerifySystemPrompt(),
+        user: buildCvVerifyUserMessage(raw, markdown),
+        tier: clampTier(settings.spend_tier),
+        maxTokens: 12_000,
+      },
+      first.usage,
+    );
+    const parsed = parseVerified(unwrapFence(second.text));
+    if (!parsed) failure = "la réponse de contrôle n'avait pas le format attendu";
+    else if (parsed.markdown.length < markdown.length * 0.7) failure = "la version contrôlée avait perdu une partie du contenu";
+    else {
+      markdown = normalizeDashes(parsed.markdown);
+      aiNotes = normalizeDashes(parsed.notes);
+    }
+  } catch (e) {
+    if (e instanceof RunFailure && e.code === "llm_error") failure = "le service n'a pas répondu";
+    else throw e;
+  }
+
+  // Contrôle déterministe (sans modèle) : les nombres du fichier doivent se retrouver dans le CV converti, et inversement.
+  const { lost, added } = crossCheckNumbers(raw, markdown);
   await patchRun(db, run.id, {
     status: "done",
-    output: unwrapFence(res.text),
+    output: composeOutput(markdown, buildNotes({ aiNotes, failure, lost, added })),
     finished_at: new Date().toISOString(),
   });
 }

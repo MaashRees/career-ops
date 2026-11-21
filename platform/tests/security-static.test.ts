@@ -109,6 +109,41 @@ test("les clients Supabase visent le schéma dédié, et aucun code n'adresse «
   assert.deepEqual(bad, []);
 });
 
+test("impression : la mise en page de l'application ne déborde pas sur une page blanche", () => {
+  const css = readFileSync(path.join(SRC, "app/globals.css"), "utf8");
+  const print = css.slice(css.indexOf("@media print"));
+  assert.match(print, /\.app-shell\s*\{[^}]*min-height:\s*0/);
+  assert.match(read(path.join(SRC, "app/(app)/layout.tsx")), /app-shell/);
+});
+
+test("typographie : aucun tiret long ni demi-cadratin dans l'interface, les messages et les consignes au modèle", () => {
+  const DASH = /[\u2014\u2013\u2015\u2012]/;
+  // report.ts LIT des titres produits par le modèle (il doit connaître ces caractères) ; text.ts les remplace.
+  const EXCLUDED = new Set(["lib/engine/report.ts", "lib/text.ts"]);
+  const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const offenders: string[] = [];
+  for (const f of files) {
+    if (EXCLUDED.has(rel(f))) continue;
+    stripComments(read(f)).split("\n").forEach((line, i) => {
+      if (DASH.test(line)) offenders.push(`${rel(f)}:${i + 1}: ${line.trim().slice(0, 80)}`);
+    });
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test("typographie : l'affichage et la copie passent par normalizeDashes (contenus déjà en base compris)", () => {
+  assert.match(read(path.join(SRC, "components/Markdown.tsx")), /normalizeDashes\(children\)/);
+  assert.match(read(path.join(SRC, "app/(app)/applications/[id]/page.tsx")), /text=\{normalizeDashes\(report\.markdown\)\}/);
+  assert.match(read(path.join(SRC, "app/(app)/documents/[id]/page.tsx")), /text=\{normalizeDashes\(doc\.markdown\)\}/);
+});
+
+test("l'import de CV : seul le CV (jamais les notes de contrôle) part dans le formulaire de validation", () => {
+  const page = read(path.join(SRC, "app/(app)/runs/[id]/page.tsx"));
+  assert.match(page, /splitVerification\(run\.output/);
+  assert.match(page, /defaultValue=\{markdown\}/);
+  assert.doesNotMatch(page, /defaultValue=\{run\.output/);
+});
+
 test("en-têtes de sécurité : CSP stricte, HSTS, anti-framing", () => {
   const cfg = readFileSync(path.join(ROOT, "next.config.mjs"), "utf8");
   for (const needle of ["Content-Security-Policy", "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:", "base-uri 'self'", "form-action 'self'", "Strict-Transport-Security", "X-Content-Type-Options", "Permissions-Policy"]) {
