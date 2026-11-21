@@ -12,11 +12,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
   [ "$local_sha" = "$ZERO" ] && continue   # suppression de branche distante
 
-  if [ "$remote_sha" = "$ZERO" ]; then
-    range="$local_sha --not --remotes"
-  else
-    range="$remote_sha..$local_sha"
-  fi
+  # Seuls les commits qui ne sont encore sur AUCUNE branche distante sont contrôlés. Ainsi, fusionner main dans une
+  # branche n'oblige pas à « corriger » des commits déjà publiés (ex. commit de fusion signé par GitHub).
+  range="$local_sha --not --remotes"
   for c in $(git rev-list $range); do
     a=$(git log -1 --format=%ae "$c"); k=$(git log -1 --format=%ce "$c")
     an=$(git log -1 --format=%an "$c"); kn=$(git log -1 --format=%cn "$c")
