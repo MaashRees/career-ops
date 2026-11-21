@@ -35,6 +35,15 @@ test("markdown : les liens javascript: sont neutralisés, les liens normaux durc
   assert.match(ok, /target="_blank"/);
 });
 
+test("markdown : un lien interne s'ouvre dans le même onglet, un lien externe dans un nouvel onglet", () => {
+  const internal = render("[profil](/profile)");
+  assert.match(internal, /href="\/profile"/);
+  assert.doesNotMatch(internal, /target=/);
+  const protocolRelative = render("[x](//evil.example/a)");
+  assert.match(protocolRelative, /target="_blank"/); // « //hôte » n'est PAS un lien interne
+  assert.match(render("[ext](https://example.com)"), /target="_blank"/);
+});
+
 test("markdown : les tableaux restent rendus", () => {
   assert.match(render("| a | b |\n|---|---|\n| 1 | 2 |"), /<table>/);
 });

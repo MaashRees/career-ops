@@ -17,6 +17,7 @@ chaque personne a **son compte**, **son CV**, **son profil** et **ses candidatur
 | **Analyse d'offre** | URL ou texte collé → rapport noté /5 (rôle, adéquation CV, légitimité de l'annonce, risques…) avec les vrais prompts du moteur. Niveau « essentiel » (~1 min) ou « complet » (~3 min). |
 | **Candidatures** | Tableau de suivi, statuts canoniques du moteur, notes, dédoublonnage par URL. |
 | **Documents** | Lettre de motivation et CV adapté (avec détecteur de chiffres absents du CV d'origine), impression PDF depuis le navigateur. |
+| **Aide** | Page **FAQ** intégrée (`/faq`, lien « Aide » du menu) : prise en main, import du CV, lecture de la note, statuts, limites, vie privée. Les limites affichées sont celles du serveur. |
 | **Garde-fous de coût** | Quota par personne et par 24 h, plafond global, niveau de modèle plafonné, page `/admin` (usage et coût estimé par personne). |
 | **Fiabilité IA** | Si Anthropic est saturé / à court de crédit, bascule automatique sur OpenRouter (et inversement). |
 

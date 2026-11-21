@@ -17,6 +17,9 @@ export const markdownOptions: Options = {
     img: () => null,
     table: ({ children }) => createElement("div", { className: "table-wrap" }, createElement("table", null, children)),
     a: ({ href, children }) =>
-      createElement("a", { href, target: "_blank", rel: "noopener noreferrer nofollow" }, children),
+      // Lien interne (« /profile ») : même onglet. Tout le reste : nouvel onglet, sans référent.
+      href && href.startsWith("/") && !href.startsWith("//")
+        ? createElement("a", { href }, children)
+        : createElement("a", { href, target: "_blank", rel: "noopener noreferrer nofollow" }, children),
   },
 };

@@ -144,6 +144,12 @@ test("l'import de CV : seul le CV (jamais les notes de contrôle) part dans le f
   assert.doesNotMatch(page, /defaultValue=\{run\.output/);
 });
 
+test("la FAQ est dans l'espace privé, atteignable depuis le menu et le tableau de bord", () => {
+  assert.match(read(path.join(SRC, "app/(app)/faq/page.tsx")), /await requireUser\(\)/);
+  assert.match(read(path.join(SRC, "app/(app)/layout.tsx")), /href: "\/faq"/);
+  assert.match(read(path.join(SRC, "app/(app)/page.tsx")), /href="\/faq"/);
+});
+
 test("en-têtes de sécurité : CSP stricte, HSTS, anti-framing", () => {
   const cfg = readFileSync(path.join(ROOT, "next.config.mjs"), "utf8");
   for (const needle of ["Content-Security-Policy", "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:", "base-uri 'self'", "form-action 'self'", "Strict-Transport-Security", "X-Content-Type-Options", "Permissions-Policy"]) {

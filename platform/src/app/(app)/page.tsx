@@ -44,7 +44,7 @@ export default async function DashboardPage() {
         <EvaluateForm />
         <p className="hint mt-3">
           {quota.limit > 0 ? `${quota.usedToday} / ${quota.limit} analyses utilisées sur les dernières 24 h.` : `${quota.usedToday} analyses sur les dernières 24 h.`}{" "}
-          L'IA donne une recommandation, pas une probabilité d'être embauché : relis toujours avant de postuler.
+          L'IA donne une recommandation, pas une probabilité d'être embauché : relis toujours avant de postuler. Une question ? Consulte l'<Link className="underline" href="/faq">aide</Link>.
         </p>
       </section>
 
