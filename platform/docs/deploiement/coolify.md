@@ -126,6 +126,17 @@ automatiquement. (Alternative : *deploy key* en lecture seule pour un seul dép�
 
 Le processus doit écouter sur `0.0.0.0` (c'est le cas de l'image).
 
+> ⚠️ **Piège de l'écran « Build configuration » (Coolify 4.7)** : le *Smart Scan* repère un `docker-compose.yml` et **sélectionne
+> « Docker Compose » tout seul**. À la racine du dépôt il s'agit du fichier du moteur d'origine, **pas** de l'application.
+> Il faut **changer le « Build pack » en `Dockerfile`**, puis mettre **Base directory = `/platform`** et **Dockerfile Location = `/Dockerfile`**
+> (clique **Scan Again** : il peut re-proposer Docker Compose, car `platform/` contient aussi un `docker-compose.yml` d'usage local ;
+> ignore-le et garde `Dockerfile`).
+> Le fichier `.env.example` repéré à la racine est celui du moteur : ignore-le, les variables de l'application sont celles de `platform/.env.example`.
+>
+> **Branche** : choisis une branche qui **contient** `platform/`. Tant que les branches ne sont pas fusionnées dans `main`, `main` ne
+> contient pas l'application : le build échouerait (« Dockerfile introuvable »). Pour un premier essai, prends la dernière branche de
+> la pile (voir [03](../03-processus-de-travail.md#branches-empilées-état-actuel)), puis repasse sur `main` après la fusion.
+
 ## 6. Variables d'environnement — **point de sécurité important**
 
 Application → **Environment Variables** → colle les variables du modèle (vue « Developer » : texte `.env`).
