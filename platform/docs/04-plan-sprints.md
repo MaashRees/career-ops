@@ -10,7 +10,7 @@ Définition de « terminé » : [03](03-processus-de-travail.md#définition-de--
 |---|---|---|---|
 | **0** | Fondations : application complète et testée | 10 / 10 | ✅ terminé |
 | **1** | Sécurité et processus : audit, correctifs, règles Git, documentation | 13 / 13 | ✅ terminé (branches poussées, **fusion à faire par toi**) |
-| **2** | Mise en production et validation réelle | 2 / 13 (+ S2-03b à moitié) | 🔄 en cours |
+| **2** | Mise en production et validation réelle | 4 / 13 | 🔄 en cours |
 | **3** | Scanner d'offres partagé | 0 / 6 | ⏳ |
 | **4** | Suivi avancé et préparation d'entretien | 0 / 6 | ⏳ |
 | **5** | RGPD, robustesse et montée en charge | 0 / 7 | ⏳ |
@@ -64,10 +64,10 @@ Branches (empilées, dans cet ordre) : `chore/git-workflow-rules` → `security/
 | [ ] S2-01 | Créer le projet Supabase (région UE) ; sauvegarder le mot de passe de la base | Toi | Projet créé, région UE vérifiée |
 | [x] S2-02 | Exécuter `0001_init.sql` (puis contrôle) | Toi | Exécuté le 21/11/2026 ; contrôlé par `verify/0003` |
 | [x] S2-03 | Exécuter `0002_security_hardening.sql` (puis contrôle) | Toi | Exécuté le 21/11/2026 ; contrôlé par `verify/0003` |
-| [ ] S2-03b | `0003_dedicated_schema.sql` ✅ **exécuté, `verify/0003` 47/47 `true` (21/11/2026)**. **Reste** : **ajouter `jobhunter` aux « Exposed schemas »**, puis `scripts/supabase-exposure-check.sh` | Toi | Script d'exposition tout ✓ ; l'application voit ses tables |
+| [x] S2-03b | `0003_dedicated_schema.sql` exécuté, `verify/0003` 47/47 `true` ; `jobhunter` exposé ; `scripts/supabase-exposure-check.sh` : **exposition conforme** | Toi | Fait le 21/11/2026 |
 | [ ] S2-04 | Configurer Auth : inscriptions désactivées, *Site URL*, *Redirect URLs*, 3 modèles d'e-mail | Toi (guide : README §1) | Une invitation de test mène bien à la création du mot de passe |
 | [ ] S2-05 | SMTP dédié (Resend, Brevo…) pour des e-mails fiables | Toi | E-mail d'invitation reçu en boîte principale |
-| [ ] S2-06 | Choisir l'hébergeur ([08](08-deploiement.md)), variables d'environnement, déploiement du conteneur, sonde `/api/health`, une seule instance toujours allumée | Toi (guides : [Railway](deploiement/railway.md) ou [Coolify](deploiement/coolify.md)) | `/api/health` = `{"ok":true}` ; `/login` répond en https |
+| [x] S2-06 | Hébergeur choisi : **Coolify sur ton VPS** ([08](08-deploiement.md), [guide](deploiement/coolify.md)). Application en ligne sur `https://career.maashrees.fr` (déploiement vert, sonde `/api/health`, une instance). `scripts/post-deploy-check.sh` : **tout ✓** | Toi | Fait le 21/11/2026 |
 | [ ] S2-07 | Limites de dépense mensuelles + alertes chez Anthropic et OpenRouter | Toi | Limites visibles dans les deux consoles |
 | [ ] S2-08 | Script de test de concurrence de `start_run` sur la vraie base (`scripts/db-concurrency-check.mjs`) | Assistant livre / Toi exécutes | 12 appels simultanés → exactement N démarrages (N = limite) |
 | [ ] S2-09 | Recette de sécurité avec 2 comptes de test (isolation, quota, admin, liste blanche) — checklist [05](05-securite.md#checklist-de-mise-en-ligne) | Toi + Assistant | Toutes les cases cochées |
