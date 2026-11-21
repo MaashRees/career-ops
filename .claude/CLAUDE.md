@@ -79,7 +79,15 @@ Premier réglage sur un clone neuf : `sh platform/scripts/install-git-hooks.sh`.
 - Aucune image ni ressource distante dans le rendu du contenu généré (risque d'exfiltration).
 - Pas de nouvelle dépendance sans justification ; `npm audit --omit=dev` doit rester propre.
 
-## 5. Commandes utiles
+## 5. Style des contenus (interface et contenus générés)
+
+- **Aucun tiret long (U+2014), demi-cadratin (U+2013) ni tiret de chiffres** dans l'interface, les messages d'erreur, les
+  consignes données au modèle ni les contenus générés (rapports, lettres, CV) : uniquement le trait d'union simple `-`.
+  Quand le tiret ne servait qu'à joindre deux propositions, **reformuler** (point, deux-points, virgule, parenthèses).
+- Garanti en deux couches : les consignes (`platform/src/lib/engine/prompts.ts`) et `normalizeDashes` (`platform/src/lib/text.ts`),
+  appliquée à l'enregistrement **et** à l'affichage/copie. Des tests échouent si un tiret long revient.
+
+## 6. Commandes utiles
 
 ```bash
 cd platform

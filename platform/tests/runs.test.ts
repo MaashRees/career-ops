@@ -219,6 +219,36 @@ test("lettre ou CV tronqués : refusés (un document incomplet serait trompeur)"
   assert.equal(db.tables.documents.length, 0);
 });
 
+test("aucun tiret long enregistré (rapport, lettre, CV adapté), mais l'offre archivée reste telle quelle", async () => {
+  const EM = "\u2014", EN = "\u2013";
+  const db = new FakeDb();
+  db.seedSettings(USER);
+  const jdWithDash = `Chef de projet ${EM} équipe produit (2020${EN}2023). ` + "Missions variées. ".repeat(20);
+  reply = () => REPORT().replace("Analyse détaillée", `Analyse ${EM} détaillée (2020${EN}2023)`);
+  const evalId = newRun(db, "evaluate", { jd_text: jdWithDash, url: "https://acme.com/jobs/55" });
+  await executeRun(asClient(db), evalId);
+  assert.equal(runRow(db, evalId).status, "done", String(runRow(db, evalId).error));
+  const [report] = db.tables.reports as Array<Record<string, any>>;
+  const body = report.markdown.split("## Job Description (archived verbatim)")[0];
+  assert.doesNotMatch(body, /[\u2014\u2013]/);
+  assert.match(body, /# Evaluation: Acme - Product Marketing Manager/);
+  assert.equal((db.tables.applications[0] as any).company, "Acme");
+  assert.match(report.markdown, new RegExp(`Chef de projet ${EM} équipe produit`)); // archive verbatim : inchangée
+  assert.match(report.jd_text, new RegExp(EM));
+
+  const appId = (db.tables.applications[0] as any).id;
+  reply = () => `Madame, Monsieur ${EM} merci.\n\n` + `Je souhaite rejoindre Acme (2020${EN}2023). `.repeat(12);
+  await executeRun(asClient(db), newRun(db, "cover_letter", { application_id: appId }));
+  assert.doesNotMatch((db.tables.documents[0] as any).markdown, /[\u2014\u2013]/);
+
+  reply = () => `# Jane Dupont\n\n## Experience\n### Acme ${EM} Paris\n**PMM**\n2019 ${EN} 2024\n` + "- Lancé 3 produits\n".repeat(10);
+  await executeRun(asClient(db), newRun(db, "tailored_cv", { application_id: appId }));
+  const cv = (db.tables.documents[1] as any).markdown as string;
+  assert.doesNotMatch(cv, /[\u2014\u2013]/);
+  assert.match(cv, /### Acme - Paris/);
+  assert.match(cv, /2019 - 2024/);
+});
+
 test("réponse qui n'est pas un rapport : rejetée, rien d'enregistré", async () => {
   const db = new FakeDb();
   db.seedSettings(USER);

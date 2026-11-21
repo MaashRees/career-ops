@@ -13,6 +13,7 @@ import {
 } from "./engine/prompts.ts";
 import { parseReport, unwrapFence, validateReport, withJdArchive } from "./engine/report.ts";
 import { JdError, fetchPosting, urlKey } from "./jd/fetch.ts";
+import { normalizeDashes } from "./text.ts";
 import { complete, LlmError, type LlmResult } from "./llm/index.ts";
 import type { Run, RunKind } from "./types.ts";
 
@@ -176,7 +177,8 @@ async function runEvaluate(db: Db, run: Run) {
     allowTruncated: true,
   });
 
-  let text = unwrapFence(res.text);
+  // Aucun tiret long dans ce qui est généré (l'offre archivée, elle, reste telle quelle).
+  let text = normalizeDashes(unwrapFence(res.text));
   const verdict = validateReport(text);
   if (!verdict.ok && res.truncated) {
     // Coupé AVANT la note : inexploitable. L'analyse a déjà coûté, on le dit clairement.
@@ -277,7 +279,7 @@ async function runDocument(db: Db, run: Run, kind: "cover_letter" | "tailored_cv
     maxTokens: kind === "cover_letter" ? 2_500 : 8_000,
   });
 
-  const markdown = unwrapFence(res.text);
+  const markdown = normalizeDashes(unwrapFence(res.text));
   if (markdown.length < 200) throw new RunFailure("bad_document", "Le document généré est trop court. Relance-le.");
   const warnings = kind === "tailored_cv" ? numbersNotInSource(markdown, settings.cv_md) : [];
 
@@ -310,7 +312,7 @@ async function runCvImport(db: Db, run: Run) {
   });
   await patchRun(db, run.id, {
     status: "done",
-    output: unwrapFence(res.text),
+    output: normalizeDashes(unwrapFence(res.text)),
     finished_at: new Date().toISOString(),
   });
 }

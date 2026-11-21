@@ -87,6 +87,15 @@ test("la lettre ne prétend jamais avoir été retenue et soigne sa clôture", (
   assert.match(p, /on its own line, then the candidate's full name/);
 });
 
+test("toutes les consignes interdisent le tiret long et le demi-cadratin", () => {
+  const rule = /em dash \(U\+2014\)[^.]*en dash \(U\+2013\)/;
+  assert.match(buildEvaluationSystemPrompt({ settings, depth: "essential" }), rule);
+  assert.match(buildCoverLetterSystemPrompt(settings), rule);
+  assert.match(buildTailoredCvSystemPrompt(settings), rule);
+  assert.match(buildCvImportSystemPrompt(), rule);
+  assert.match(buildEvaluationSystemPrompt({ settings, depth: "full" }), /# Evaluation: \{Company\} - \{Role\}/);
+});
+
 test("l'import de CV garde les titres de section dans la langue du CV", () => {
   const p = buildCvImportSystemPrompt();
   assert.match(p, /SAME LANGUAGE as the CV/);

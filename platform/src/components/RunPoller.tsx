@@ -45,7 +45,7 @@ export function RunPoller({ runId, kindLabel }: { runId: string; kindLabel: stri
         <p className="hint">
           {seconds < 5
             ? "Démarrage."
-            : "L'IA travaille — une analyse prend en général 30 s à 2 min. Tu peux laisser cette page ouverte."}{" "}
+            : "L'IA travaille. Une analyse prend en général 30 s à 2 min. Tu peux laisser cette page ouverte."}{" "}
           ({seconds} s)
         </p>
       </div>

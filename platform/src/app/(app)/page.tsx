@@ -33,8 +33,8 @@ export default async function DashboardPage() {
         <section className="alert alert-warn" aria-label="Configuration">
           <p className="font-semibold">Avant ta première analyse :</p>
           <ul className="mt-1 list-disc pl-5">
-            {!hasCv && <li>Ajoute ton CV (PDF ou texte) — <Link className="underline" href="/profile">Profil &amp; CV</Link>.</li>}
-            {!hasProfile && <li>Indique les postes visés, ta localisation et ta fourchette de salaire — <Link className="underline" href="/profile">Profil &amp; CV</Link>.</li>}
+            {!hasCv && <li>Ajoute ton CV (PDF ou texte) - <Link className="underline" href="/profile">Profil &amp; CV</Link>.</li>}
+            {!hasProfile && <li>Indique les postes visés, ta localisation et ta fourchette de salaire - <Link className="underline" href="/profile">Profil &amp; CV</Link>.</li>}
           </ul>
         </section>
       )}
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
       <section aria-label="Statistiques" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Offres évaluées", value: list.length },
-          { label: "Note moyenne", value: avg == null ? "—" : avg.toFixed(1) },
+          { label: "Note moyenne", value: avg == null ? "-" : avg.toFixed(1) },
           { label: "À postuler (≥ 4,0)", value: toApply },
           { label: "En cours", value: inProgress },
         ].map((s) => (
@@ -75,7 +75,7 @@ export default async function DashboardPage() {
               <li key={a.id}>
                 <Link href={`/applications/${a.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:bg-accent-soft/50">
                   <span>
-                    <span className="font-medium">{a.company}</span> <span className="text-muted">— {a.role}</span>
+                    <span className="font-medium">{a.company}</span> <span className="text-muted">- {a.role}</span>
                   </span>
                   <span className="flex items-center gap-2">
                     <ScoreBadge score={a.score} />
