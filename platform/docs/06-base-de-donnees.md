@@ -72,7 +72,7 @@ Contrôle depuis l'extérieur, avec la seule clé publique (jamais la clé `serv
 
 ## Ordre et dépendances
 
-`0001` → `0002` → `0003` → exposer le schéma → (code de l'app, qui appelle `start_run` dans `jobhunter`). **Déployer la version de l'app avec `start_run` sans avoir exécuté 0002
+`0001` → `0002` → `0003` → exposer le schéma → (code de l'app, qui appelle `start_run` dans `jobhunter`). **Déployer cette version de l'app sans avoir exécuté 0002 et 0003
 fait échouer le lancement des analyses** (le message du serveur indique la migration manquante).
 
 ## Ce que protègent les scripts actuels

@@ -109,6 +109,7 @@ Légende : ✅ implémenté et vérifié · 🟡 configuration/action de ta part
 | R-05 | CSP avec `unsafe-inline` pour les scripts | Imposé par Next sans *nonce* ; compensé par l'absence de HTML brut et d'image distante ; nonce au Sprint 5 |
 | R-06 | Pas de double authentification | Accès sur invitation ; MFA admin au Sprint 5 |
 | R-07 | Dépendance aux fournisseurs (Supabase, IA, hébergeur) | Repli entre deux fournisseurs IA ; sauvegardes ; données exportables |
+| R-09 | **Dépôt public** : code, scripts SQL et cette documentation de sécurité sont lisibles par tous | La sécurité ne repose pas sur le secret du code ; aucun secret dans le dépôt (test statique) ; détection de secrets GitHub à activer ; clé commitée par erreur = **révoquer**, pas seulement supprimer |
 | R-08 | Le moteur copié (`engine/`) hérite de ses propres choix | Mise à jour contrôlée par `npm run sync-engine`, revue du diff |
 
 ## 4. Ce qui n'a PAS pu être vérifié au Sprint 1
@@ -136,6 +137,7 @@ Ces points sont des tâches du Sprint 2 (S2-04, S2-06, S2-08, S2-10).
 - [ ] SMTP dédié configuré
 - [ ] Sauvegardes activées ; date de la dernière sauvegarde notée
 - [ ] La clé `service_role` n'est dans aucun fichier, message ni capture d'écran
+- [ ] Dépôt public : *Secret scanning* et *Push protection* de GitHub activés ; aucune clé jamais commitée (sinon : la révoquer)
 
 **Application / hébergeur**
 - [ ] `SITE_URL` en https ; `ALLOWED_EMAILS` = exactement les personnes invitées ; `ADMIN_EMAILS` = toi

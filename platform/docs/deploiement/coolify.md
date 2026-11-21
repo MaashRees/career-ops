@@ -19,7 +19,7 @@ Tu peux **sauter les sections 1 et 2** (serveur et installation). Fais dans l'or
 | 1 | **Contrôle du serveur** : copie [`platform/scripts/coolify-preflight.sh`](../../scripts/coolify-preflight.sh) sur le VPS et lance `sudo sh coolify-preflight.sh jobs.ton-domaine coolify.ton-domaine` (lecture seule : RAM, disque, Docker, ports, SSH, DNS). Corrige les ✗ ; relis les `!` | VPS |
 | 2 | Vérifier **Coolify** : version à jour, tableau de bord servi en HTTPS sur son domaine, ports `8000/6001/6002` fermés, compte admin au mot de passe fort, copie de `/data/coolify/source/.env` hors du serveur | [§3](#3-pare-feu-et-domaine-du-tableau-de-bord) |
 | 3 | DNS : enregistrement **A** `jobs.ton-domaine` → IP du VPS | registrar |
-| 4 | Source GitHub (GitHub App) si elle n'existe pas encore | [§4](#4-connecter-github-dépôt-privé) |
+| 4 | Dépôt **public** : rien à connecter, tu choisiras « Public Repository » (voir §4) | [§4](#4-connecter-github-dépôt-public-ou-privé) |
 | 5 | Créer l'application (Base Directory `/platform`, port 3000) | [§5](#5-créer-lapplication) |
 | 6 | Variables — **toutes en « Runtime only »** | [§6](#6-variables-denvironnement--point-de-sécurité-important) |
 | 7 | Sonde de santé `/api/health` | [§7](#7-sonde-de-santé) |
@@ -77,21 +77,43 @@ sans lui, une restauration est impossible). Garde-le dans un gestionnaire de mot
    (Utilise un domaine à part, pas celui de l'application ; pas de chemin dans l'URL.)
 4. Une fois le tableau de bord accessible en HTTPS, **ferme `8000`, `6001`, `6002`** dans le pare-feu.
 
-## 4. Connecter GitHub (dépôt privé)
+## 4. Connecter GitHub (dépôt public ou privé)
 
-Méthode recommandée : **GitHub App**.
+### Ton cas : dépôt **public** → le plus simple
 
-1. **Sources → New source → GitHub App** → nomme-la ; **Continue**.
-2. *Webhook endpoint* : **Use an instance endpoint** (URL de base, sans `/webhooks`) ; **Register with GitHub**.
-3. Sur GitHub : nom unique → **Create GitHub App**. De retour dans Coolify : **Install repositories** → **Only select repositories**
-   → ton dépôt → **Install**.
+Aucune application GitHub à installer. À l'étape 5, choisis **+ New → Public Repository**, colle l'URL HTTPS du dépôt
+(`https://github.com/MaashRees/career-ops`), puis **Check Repository**.
 
-(Alternative : une *deploy key* en lecture seule pour un seul dépôt ; dans ce cas il faut configurer le webhook à la main.)
+Pour le **déploiement automatique** (facultatif), un dépôt public demande un webhook manuel :
+
+1. Application → page **Webhooks** → copie l'URL sous **Manual Git webhooks**.
+2. Saisis un **Webhook secret** (une longue valeur aléatoire, à conserver dans ton gestionnaire de mots de passe) → **Save changes**.
+3. GitHub → dépôt → **Settings → Webhooks → Add webhook** : colle l'URL, le **même secret**, événement **push** *(il faut être administrateur du dépôt ;
+   le type de contenu attendu n'est pas précisé dans la documentation lue : choisis `application/json`)*.
+4. Coolify → application → **Advanced → Deployment → Auto deploy** → **Deploy on push (webhooks)**.
+
+Sans webhook, tu déploies à la main avec le bouton **Deploy / Redeploy** après chaque fusion : plus simple, parfaitement correct.
+
+### Si tu repasses un jour en **privé**
+
+Méthode recommandée : **GitHub App** — *Sources → New source → GitHub App* ; *Webhook endpoint* : **Use an instance endpoint** (URL de base,
+sans `/webhooks`) ; **Register with GitHub** ; sur GitHub, nom unique → **Create GitHub App** ; de retour dans Coolify : **Install repositories**
+→ **Only select repositories** → ton dépôt. À l'étape 5 : **Private Repository (with GitHub App)**. Les webhooks sont alors configurés
+automatiquement. (Alternative : *deploy key* en lecture seule pour un seul dépôt, avec webhook manuel.)
+
+### Dépôt public : ce que ça implique
+
+- **Tout est lisible par tout le monde** : le code, les scripts SQL, la documentation de sécurité (y compris la liste des risques résiduels).
+  La sécurité de l'application ne repose pas sur le secret du code, et un test automatique vérifie qu'aucune clé n'est dans le dépôt.
+- **Aucun secret dans le dépôt, jamais** : les clés vivent uniquement dans les variables de Coolify. Si une clé est commitée **par erreur**,
+  la supprimer du dépôt ne suffit pas (elle reste dans l'historique et peut déjà avoir été copiée) : **la révoquer immédiatement** chez le fournisseur.
+- Active la détection de secrets de GitHub (**Settings → Code security** : *Secret scanning* et *Push protection*, intitulés exacts susceptibles de varier).
+- N'importe qui peut forker le dépôt et lire le `Dockerfile` : sans conséquence, il ne contient aucune configuration privée.
 
 ## 5. Créer l'application
 
-1. **Projects → (ton projet) → environnement → + New → Private Repository (with GitHub App)**.
-2. Choisis le serveur, la source GitHub, le dépôt → **Load Repository**.
+1. **Projects → (ton projet) → environnement → + New → Public Repository** (ou *Private Repository (with GitHub App)* si le dépôt est privé).
+2. Colle l'URL du dépôt → **Check Repository** (dépôt privé : choisis le serveur, la source GitHub, le dépôt → **Load Repository**).
 3. Renseigne :
 
 | Champ | Valeur |
