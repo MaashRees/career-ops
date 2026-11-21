@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { splitVerification } from "../src/lib/engine/cv-import.ts";
 import { executeRun, sweepIfStale, STALE_RUN_MS } from "../src/lib/runs.ts";
 import type { Run } from "../src/lib/types.ts";
 import { FakeDb } from "./helpers/fake-db.ts";
@@ -30,6 +31,7 @@ const realFetch = globalThis.fetch;
 let anthropicBodies: any[] = [];
 let reply: () => string = () => REPORT();
 let stopReason = "end_turn";
+let replies: Array<string | { status: number }> = [];
 
 beforeEach(() => {
   for (const k of KEYS) delete process.env[k];
@@ -37,11 +39,14 @@ beforeEach(() => {
   anthropicBodies = [];
   reply = () => REPORT();
   stopReason = "end_turn";
+  replies = [];
   globalThis.fetch = (async (_url: string, init: RequestInit) => {
     anthropicBodies.push(JSON.parse(String(init.body)));
+    const queued = replies.length ? replies.shift()! : null;
+    if (queued && typeof queued !== "string") return new Response(JSON.stringify({ error: { message: "erreur simulée" } }), { status: queued.status });
     return new Response(
       JSON.stringify({
-        content: [{ type: "text", text: reply() }],
+        content: [{ type: "text", text: queued ?? reply() }],
         stop_reason: stopReason,
         usage: { input_tokens: 30000, output_tokens: 4000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
       }),
@@ -305,16 +310,81 @@ test("CV adapté : signale les chiffres absents du CV d'origine", async () => {
   assert.deepEqual([...doc.warnings].sort(), ["15", "90"]);
 });
 
-test("import de CV : sortie conservée pour validation, modèle économique", async () => {
+const RAW_CV = "Jane Dupont\nIngé-\nnieur logiciel\nAcme 2019 2024\nLancé 3 produits, hausse de 35% du revenu\nMaster Informatique 2017 2019\n" + "Compétences : Java, SQL, Docker. ".repeat(4);
+const MD1 = "# Jane Dupont\n\n## Expérience\n### Acme - Paris\n**Ingénieur logiciel**\n2019 - 2024\n- Lancé 3 produits, hausse de 35% du revenu\n\n## Formation\n- Master Informatique 2017 - 2019\n\n## Compétences\n- Java, SQL, Docker\n";
+
+test("import de CV : deux passes (conversion économique, vérification au niveau choisi), usage additionné", async () => {
   const db = new FakeDb();
   db.seedSettings(USER, { cv_md: "" });
-  reply = () => "# Jane Dupont\n\n## Experience\n- Poste";
-  const id = newRun(db, "cv_import", { text: "Jane Dupont\nExperience ".repeat(20) });
+  const MD2 = MD1.replace("Ingénieur logiciel", "Ingénieur logiciel (corrigé)");
+  replies = [MD1, `${MD2}\n<<<VERIFICATION>>>\n## Corrections\n- Mot coupé « Ingé- nieur » recollé\n\n## À vérifier\n- Aucun`];
+  const id = newRun(db, "cv_import", { text: RAW_CV });
   await executeRun(asClient(db), id);
   const run = runRow(db, id);
-  assert.equal(run.status, "done");
-  assert.match(run.output, /^# Jane Dupont/);
+  assert.equal(run.status, "done", run.error);
+  assert.equal(anthropicBodies.length, 2);
   assert.equal(anthropicBodies[0].model, "claude-haiku-5-5");
+  assert.equal(anthropicBodies[1].model, "claude-sonnet-5-5");
+  assert.match(anthropicBodies[1].messages[0].content, /<raw_text>[\s\S]*Ingé-\nnieur[\s\S]*<current_markdown>/);
+  assert.match(run.output, /^# Jane Dupont/);
+  assert.match(run.output, /\(corrigé\)/); // la version vérifiée remplace la conversion
+  assert.match(run.output, /<<<VERIFICATION>>>\n## Corrections\n- Mot coupé/);
+  assert.match(run.output, /## Contrôle automatique des nombres\n- Tous les nombres/);
+  assert.equal(run.input_tokens, 60000); // 2 appels x 30 000
+  assert.equal(run.output_tokens, 8000);
+});
+
+test("import de CV : la vérification signale les nombres perdus ou ajoutés (contrôle sans modèle)", async () => {
+  const db = new FakeDb();
+  db.seedSettings(USER, { cv_md: "" });
+  // 2017 n'apparaît qu'à un endroit : le perdre est détectable ; « 70 » n'existe pas dans le fichier : ajouté.
+  const lossy = MD1.replace("- Master Informatique 2017 - 2019", "- Master Informatique").replace("3 produits", "70 produits");
+  replies = [MD1, `${lossy}\n<<<VERIFICATION>>>\n## Corrections\n- Aucune\n\n## À vérifier\n- Aucun`];
+  const id = newRun(db, "cv_import", { text: RAW_CV });
+  await executeRun(asClient(db), id);
+  const out = runRow(db, id).output as string;
+  assert.match(out, /absents\*\* du CV converti \(contenu perdu \?\) : .*2017/);
+  assert.match(out, /absents\*\* de ton fichier \(ajoutés par erreur \?\) : 70/);
+});
+
+test("import de CV : si la vérification échoue, la conversion est gardée et l'utilisateur est prévenu (l'import n'échoue pas)", async () => {
+  const db = new FakeDb();
+  db.seedSettings(USER, { cv_md: "" });
+  replies = [MD1, { status: 401 }];
+  const id = newRun(db, "cv_import", { text: RAW_CV });
+  await executeRun(asClient(db), id);
+  const run = runRow(db, id);
+  assert.equal(run.status, "done", run.error);
+  const { markdown, notes } = splitVerification(run.output);
+  assert.match(markdown, /^# Jane Dupont/);
+  assert.match(notes, /La vérification automatique n'a pas abouti \(le service n'a pas répondu\)/);
+  assert.equal(run.input_tokens, 30000); // seule la première passe a été facturée
+});
+
+test("import de CV : une vérification qui perd du contenu ou sans le bon format est écartée", async () => {
+  for (const [label, second, expected] of [
+    ["contenu perdu", `# Jane\n<<<VERIFICATION>>>\n## Corrections\n- Aucune`, /perdu une partie du contenu/],
+    ["sans marqueur", MD1, /pas le format attendu/],
+  ] as const) {
+    const db = new FakeDb();
+    db.seedSettings(USER, { cv_md: "" });
+    replies = [MD1, second];
+    const id = newRun(db, "cv_import", { text: RAW_CV });
+    await executeRun(asClient(db), id);
+    const { markdown, notes } = splitVerification(runRow(db, id).output);
+    assert.match(markdown, /### Acme - Paris/, label);
+    assert.match(notes, expected, label);
+  }
+});
+
+test("import de CV : aucun tiret long ni dans le CV ni dans les notes", async () => {
+  const db = new FakeDb();
+  db.seedSettings(USER, { cv_md: "" });
+  const EM = "\u2014", EN = "\u2013";
+  replies = [MD1.replace("### Acme - Paris", `### Acme ${EM} Paris`), `${MD1.replace("2019 - 2024", `2019 ${EN} 2024`)}\n<<<VERIFICATION>>>\n## Corrections\n- Date ${EM} recollée\n\n## À vérifier\n- Aucun`];
+  const id = newRun(db, "cv_import", { text: RAW_CV });
+  await executeRun(asClient(db), id);
+  assert.doesNotMatch(runRow(db, id).output, /[\u2014\u2013]/);
 });
 
 test("executeRun ignore une analyse déjà terminée", async () => {

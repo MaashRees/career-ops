@@ -137,6 +137,13 @@ test("typographie : l'affichage et la copie passent par normalizeDashes (contenu
   assert.match(read(path.join(SRC, "app/(app)/documents/[id]/page.tsx")), /text=\{normalizeDashes\(doc\.markdown\)\}/);
 });
 
+test("l'import de CV : seul le CV (jamais les notes de contrôle) part dans le formulaire de validation", () => {
+  const page = read(path.join(SRC, "app/(app)/runs/[id]/page.tsx"));
+  assert.match(page, /splitVerification\(run\.output/);
+  assert.match(page, /defaultValue=\{markdown\}/);
+  assert.doesNotMatch(page, /defaultValue=\{run\.output/);
+});
+
 test("en-têtes de sécurité : CSP stricte, HSTS, anti-framing", () => {
   const cfg = readFileSync(path.join(ROOT, "next.config.mjs"), "utf8");
   for (const needle of ["Content-Security-Policy", "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:", "base-uri 'self'", "form-action 'self'", "Strict-Transport-Security", "X-Content-Type-Options", "Permissions-Policy"]) {

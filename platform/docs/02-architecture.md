@@ -35,6 +35,11 @@ Aucun fichier utilisateur n'est stocké : le PDF importé est lu en mémoire, se
 6. La page de suivi interroge `/api/runs/<id>` toutes les 2 s ; au statut `done`, redirection vers la candidature.
    Un échec écrit un message lisible dans `runs.error`. Une analyse `running` depuis > 12 min est marquée `stale`.
 
+**Import de CV** (même mécanisme, deux appels dans une seule analyse) : 1) conversion du texte extrait en markdown (niveau économique) ;
+2) **vérification** contre le texte brut au niveau choisi par l'utilisateur (complétude, dégâts d'extraction réparés, fautes de l'auteur
+listées sans être corrigées) ; 3) contrôle déterministe des nombres (perdus / ajoutés). Si la vérification échoue ou perd du contenu,
+la conversion est gardée et l'utilisateur est prévenu. La page de validation affiche les notes ; **seul le CV** est enregistré.
+
 Les écritures de fond (rapports, documents, résultats) utilisent la clé *service role* avec un filtre `user_id` explicite ;
 tout le reste passe par la session de l'utilisateur et la RLS.
 
