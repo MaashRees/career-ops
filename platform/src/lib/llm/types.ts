@@ -7,6 +7,12 @@ export interface LlmRequest {
   user: string;
   tier: Tier;
   maxTokens: number;
+  /**
+   * Accepter une réponse coupée par la limite de longueur (stop_reason max_tokens / finish_reason length).
+   * Par défaut une réponse tronquée est une ERREUR (un CV ou une lettre incomplets seraient trompeurs).
+   * Pour un rapport d'évaluation, la note et les premiers blocs sont déjà là : on garde, avec un avertissement.
+   */
+  allowTruncated?: boolean;
   /** Interruption externe (en plus du délai interne). */
   signal?: AbortSignal;
 }
@@ -20,6 +26,8 @@ export interface LlmUsage {
 
 export interface LlmResult {
   text: string;
+  /** Vrai si le modèle a été coupé par la limite de longueur (seulement possible avec allowTruncated). */
+  truncated: boolean;
   provider: Provider;
   model: string;
   usage: LlmUsage;

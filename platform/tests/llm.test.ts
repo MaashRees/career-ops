@@ -60,6 +60,20 @@ test("réponse tronquée → erreur explicite non rejouable", async () => {
   assert.equal(calls.length, 1);
 });
 
+test("réponse tronquée ACCEPTÉE seulement sur demande explicite (allowTruncated), avec l'indicateur", async () => {
+  const a = mockFetch([() => json(200, { content: [{ type: "text", text: "début du rapport" }], stop_reason: "max_tokens", usage: {} })]);
+  const r = await complete({ ...REQ, allowTruncated: true }, a.fn);
+  assert.equal(r.truncated, true);
+  assert.equal(r.text, "début du rapport");
+  const ok = mockFetch([anthropicOk]);
+  assert.equal((await complete(REQ, ok.fn)).truncated, false);
+
+  delete process.env.ANTHROPIC_API_KEY;
+  const o = mockFetch([() => json(200, { choices: [{ message: { content: "début" }, finish_reason: "length" }], usage: {} })]);
+  assert.equal((await complete({ ...REQ, allowTruncated: true }, o.fn)).truncated, true);
+  await assert.rejects(complete(REQ, mockFetch([() => json(200, { choices: [{ message: { content: "début" }, finish_reason: "length" }], usage: {} })]).fn), /tronquée/);
+});
+
 test("repli sur OpenRouter quand Anthropic est saturé (529)", async () => {
   const { fn, calls } = mockFetch([
     () => json(529, { error: { message: "overloaded" } }),

@@ -29,18 +29,20 @@ const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
 const realFetch = globalThis.fetch;
 let anthropicBodies: any[] = [];
 let reply: () => string = () => REPORT();
+let stopReason = "end_turn";
 
 beforeEach(() => {
   for (const k of KEYS) delete process.env[k];
   process.env.ANTHROPIC_API_KEY = "sk-ant-test";
   anthropicBodies = [];
   reply = () => REPORT();
+  stopReason = "end_turn";
   globalThis.fetch = (async (_url: string, init: RequestInit) => {
     anthropicBodies.push(JSON.parse(String(init.body)));
     return new Response(
       JSON.stringify({
         content: [{ type: "text", text: reply() }],
-        stop_reason: "end_turn",
+        stop_reason: stopReason,
         usage: { input_tokens: 30000, output_tokens: 4000, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
       }),
       { status: 200 },
@@ -174,6 +176,47 @@ test("règle bloquante : needs_confirmation, rien n'est enregistré, usage conse
   assert.equal(run.input_tokens, 30000);
   assert.equal(db.tables.applications.length, 0);
   assert.equal(db.tables.reports.length, 0);
+});
+
+test("rapport tronqué mais avec sa note : enregistré avec un avertissement visible", async () => {
+  const db = new FakeDb();
+  db.seedSettings(USER);
+  stopReason = "max_tokens";
+  const id = newRun(db, "evaluate", { jd_text: JD, url: "https://acme.com/jobs/77" });
+  await executeRun(asClient(db), id);
+  assert.equal(runRow(db, id).status, "done", runRow(db, id).error);
+  const [report] = db.tables.reports as Array<Record<string, any>>;
+  assert.match(report.markdown, /Rapport tronqué/);
+  assert.equal((db.tables.applications[0] as any).score, 4.2);
+  assert.equal(anthropicBodies[0].max_tokens, 12000);
+});
+
+test("rapport coupé AVANT la note : échec clair, usage conservé, rien d'enregistré", async () => {
+  const db = new FakeDb();
+  db.seedSettings(USER);
+  stopReason = "max_tokens";
+  reply = () => "# Evaluation: Acme — PM\n\nDébut de l'analyse sans jamais arriver à la note. ".repeat(20);
+  const id = newRun(db, "evaluate", { jd_text: JD });
+  await executeRun(asClient(db), id);
+  const run = runRow(db, id);
+  assert.equal(run.status, "failed");
+  assert.equal(run.error_code, "truncated");
+  assert.equal(run.input_tokens, 30000);
+  assert.equal(db.tables.reports.length, 0);
+});
+
+test("lettre ou CV tronqués : refusés (un document incomplet serait trompeur)", async () => {
+  const db = new FakeDb();
+  db.seedSettings(USER);
+  await executeRun(asClient(db), newRun(db, "evaluate", { jd_text: JD, url: "https://acme.com/jobs/42" }));
+  const appId = (db.tables.applications[0] as any).id;
+  stopReason = "max_tokens";
+  reply = () => "Madame, Monsieur, " + "Je souhaite rejoindre Acme. ".repeat(20);
+  const id = newRun(db, "cover_letter", { application_id: appId });
+  await executeRun(asClient(db), id);
+  assert.equal(runRow(db, id).status, "failed");
+  assert.equal(runRow(db, id).error_code, "llm_error");
+  assert.equal(db.tables.documents.length, 0);
 });
 
 test("réponse qui n'est pas un rapport : rejetée, rien d'enregistré", async () => {
