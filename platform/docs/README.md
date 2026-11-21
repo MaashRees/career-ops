@@ -26,7 +26,7 @@ Les règles de travail (Git, identité, base de données) sont dans [`.claude/CL
 |---|---|
 | Application (comptes, profil/CV, analyse d'offre, candidatures, lettre, CV adapté, admin) | ✅ écrite et testée |
 | Sécurité applicative (audit + correctifs) | ✅ faite — voir [05](05-securite.md) |
-| Scripts SQL 0001 et 0002 | 🟡 écrits et testés en local, **pas encore exécutés sur ta base Supabase** |
+| Scripts SQL 0001, 0002 et 0003 | ✅ **exécutés sur ta base le 21/11/2026**, `verify/0003` : 47/47 à `true` ; reste l'étape « Exposed schemas » |
 | Mise en ligne (Supabase réel, hébergeur, clés, invités) | ⏳ Sprint 2 |
 | Test de bout en bout avec de vraies clés IA et de vraies offres | ⏳ Sprint 2 |
 

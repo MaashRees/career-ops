@@ -10,7 +10,7 @@ Définition de « terminé » : [03](03-processus-de-travail.md#définition-de--
 |---|---|---|---|
 | **0** | Fondations : application complète et testée | 10 / 10 | ✅ terminé |
 | **1** | Sécurité et processus : audit, correctifs, règles Git, documentation | 13 / 13 | ✅ terminé (branches poussées, **fusion à faire par toi**) |
-| **2** | Mise en production et validation réelle | 0 / 13 | ⏳ prochain |
+| **2** | Mise en production et validation réelle | 2 / 13 (+ S2-03b à moitié) | 🔄 en cours |
 | **3** | Scanner d'offres partagé | 0 / 6 | ⏳ |
 | **4** | Suivi avancé et préparation d'entretien | 0 / 6 | ⏳ |
 | **5** | RGPD, robustesse et montée en charge | 0 / 7 | ⏳ |
@@ -62,9 +62,9 @@ Branches (empilées, dans cet ordre) : `chore/git-workflow-rules` → `security/
 | ID | Tâche | Qui | Critère d'acceptation |
 |---|---|---|---|
 | [ ] S2-01 | Créer le projet Supabase (région UE) ; sauvegarder le mot de passe de la base | Toi | Projet créé, région UE vérifiée |
-| [ ] S2-02 | Exécuter `0001_init.sql` puis `verify/0001_init.sql` | Toi | Toutes les lignes `ok = true` |
-| [ ] S2-03 | Exécuter `0002_security_hardening.sql` puis `verify/0002_security_hardening.sql` | Toi | Toutes les lignes `ok = true` |
-| [ ] S2-03b | Exécuter `0003_dedicated_schema.sql` (tout dans le schéma `jobhunter`), **ajouter `jobhunter` aux « Exposed schemas »**, `verify/0003`, puis `scripts/supabase-exposure-check.sh` | Toi | `verify/0003` tout `true` ; script d'exposition tout ✓ ; l'application voit ses tables |
+| [x] S2-02 | Exécuter `0001_init.sql` (puis contrôle) | Toi | Exécuté le 21/11/2026 ; contrôlé par `verify/0003` |
+| [x] S2-03 | Exécuter `0002_security_hardening.sql` (puis contrôle) | Toi | Exécuté le 21/11/2026 ; contrôlé par `verify/0003` |
+| [ ] S2-03b | `0003_dedicated_schema.sql` ✅ **exécuté, `verify/0003` 47/47 `true` (21/11/2026)**. **Reste** : **ajouter `jobhunter` aux « Exposed schemas »**, puis `scripts/supabase-exposure-check.sh` | Toi | Script d'exposition tout ✓ ; l'application voit ses tables |
 | [ ] S2-04 | Configurer Auth : inscriptions désactivées, *Site URL*, *Redirect URLs*, 3 modèles d'e-mail | Toi (guide : README §1) | Une invitation de test mène bien à la création du mot de passe |
 | [ ] S2-05 | SMTP dédié (Resend, Brevo…) pour des e-mails fiables | Toi | E-mail d'invitation reçu en boîte principale |
 | [ ] S2-06 | Choisir l'hébergeur ([08](08-deploiement.md)), variables d'environnement, déploiement du conteneur, sonde `/api/health`, une seule instance toujours allumée | Toi (guides : [Railway](deploiement/railway.md) ou [Coolify](deploiement/coolify.md)) | `/api/health` = `{"ok":true}` ; `/login` répond en https |

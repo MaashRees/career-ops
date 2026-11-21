@@ -34,15 +34,19 @@ dans les scripts SQL (rechercher/remplacer `jobhunter`) **avant** de les exécut
 
 | N° | Fichier | Ce qu'il fait | Vérif. | Retour arrière | État sur ta base |
 |---|---|---|---|---|---|
-| 0001 | `0001_init.sql` | Tables (profils, réglages/CV, candidatures, rapports, documents, analyses), RLS, création automatique du profil à l'inscription | `verify/0001_init.sql` | `rollback/0001_init.sql` ⚠️ **destructif** | 🟡 à exécuter (S2-02) |
-| 0002 | `0002_security_hardening.sql` | `start_run` (quotas atomiques), plafonds de taille/nombre, droits restreints sur les fonctions | `verify/0002_security_hardening.sql` | `rollback/0002_security_hardening.sql` | 🟡 à exécuter (S2-03) |
-| 0003 | `0003_dedicated_schema.sql` | **Déplace tout dans le schéma `jobhunter`** (données conservées), recrée fonctions et déclencheurs, pose des droits minimaux | `verify/0003_dedicated_schema.sql` | `rollback/0003_dedicated_schema.sql` (déconseillé) | 🟡 à exécuter (S2-03b) |
+| 0001 | `0001_init.sql` | Tables (profils, réglages/CV, candidatures, rapports, documents, analyses), RLS, création automatique du profil à l'inscription | `verify/0001_init.sql` | `rollback/0001_init.sql` ⚠️ **destructif** | ✅ exécuté le 21/11/2026 |
+| 0002 | `0002_security_hardening.sql` | `start_run` (quotas atomiques), plafonds de taille/nombre, droits restreints sur les fonctions | `verify/0002_security_hardening.sql` | `rollback/0002_security_hardening.sql` | ✅ exécuté le 21/11/2026 |
+| 0003 | `0003_dedicated_schema.sql` | **Déplace tout dans le schéma `jobhunter`** (données conservées), recrée fonctions et déclencheurs, pose des droits minimaux | `verify/0003_dedicated_schema.sql` | `rollback/0003_dedicated_schema.sql` (déconseillé) | ✅ exécuté le 21/11/2026 — **`verify/0003` : 47 / 47 contrôles à `true`** |
 | 0004 | *(Sprint 3)* `jobs`, `job_matches` — **directement dans `jobhunter`** | Scanner partagé | — | — | ⏳ |
 | 0005 | *(Sprint 4)* `status_log` — **directement dans `jobhunter`** | Historique des statuts | — | — | ⏳ |
 
 > **0001 et 0002 créent dans `public`** (elles étaient déjà livrées : on ne modifie jamais un script livré). **0003 règle ça.**
 > **Après 0003, ne rejoue plus jamais 0001 ni 0002** : elles recréeraient des tables *vides* dans `public`.
 > Le script `verify/0003` contrôle justement qu'il ne reste rien dans `public`.
+
+> **État de ta base (21/11/2026)** : `0001`, `0002` puis `0003` exécutés ; `verify/0003` = 47 contrôles sur 47 à `true`
+> (tout est dans `jobhunter`, rien ne reste dans `public`, `anon` n'a aucun accès). **Reste à faire** : l'étape manuelle
+> « Exposed schemas » puis `supabase-exposure-check.sh` (S2-03b).
 
 ## Que faire selon ta situation
 

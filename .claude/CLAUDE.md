@@ -45,9 +45,11 @@ Premier réglage sur un clone neuf : `sh platform/scripts/install-git-hooks.sh`.
     puis `grant execute … to service_role`. Chaque table : RLS activée + politiques + plafonds de taille + test d'isolation.
   - Le schéma doit être ajouté par l'utilisateur dans Supabase → Project Settings → API → « Exposed schemas » : le rappeler
     à chaque livraison qui ajoute un schéma, et vérifier avec `platform/scripts/supabase-exposure-check.sh`.
-  - Les scripts `0001` et `0002` (déjà livrés) créent dans `public` : ils ne sont **pas modifiés** ; `0003` déplace tout dans
-    `jobhunter`. Ne jamais les rejouer après `0003`.
-- Numérotation continue, jamais de modification d'un script déjà livré : on ajoute `NNNN+1`.
+  - Les scripts `0001` et `0002` (exécutés) créent dans `public` : ils ne sont **pas modifiés** ; `0003` (exécuté) a déplacé tout
+    dans `jobhunter`. Ne jamais les rejouer.
+- Numérotation continue. **Jamais de modification d'un script que l'utilisateur a exécuté** (`0001`, `0002`, `0003` le sont, depuis le
+  21/11/2026) : on ajoute `NNNN+1`. Un script livré mais que l'utilisateur confirme ne pas avoir exécuté peut être corrigé.
+  Avant de supposer qu'un script n'a pas été exécuté, **le demander** (l'utilisateur peut l'avoir lancé en cours de travail).
 - Chaque script est **testé localement sur PGlite** (Postgres en mémoire, `platform/tests/`) : ce n'est pas la base réelle.
 - À chaque livraison de script : mettre à jour `platform/docs/06-base-de-donnees.md` (ordre d'exécution, ce qu'il change,
   comment vérifier, comment revenir en arrière) et le dire clairement à l'utilisateur dans la réponse.
