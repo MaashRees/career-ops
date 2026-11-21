@@ -133,9 +133,8 @@ Le processus doit écouter sur `0.0.0.0` (c'est le cas de l'image).
 > ignore-le et garde `Dockerfile`).
 > Le fichier `.env.example` repéré à la racine est celui du moteur : ignore-le, les variables de l'application sont celles de `platform/.env.example`.
 >
-> **Branche** : choisis une branche qui **contient** `platform/`. Tant que les branches ne sont pas fusionnées dans `main`, `main` ne
-> contient pas l'application : le build échouerait (« Dockerfile introuvable »). Pour un premier essai, prends la dernière branche de
-> la pile (voir [03](../03-processus-de-travail.md#branches-empilées-état-actuel)), puis repasse sur `main` après la fusion.
+> **Branche** : `main` (elle contient `platform/` depuis la fusion des pull requests du Sprint 1). Sur un dépôt où `platform/` n'est
+> pas encore fusionné, le build échouerait (« Dockerfile introuvable ») : choisis alors une branche qui le contient.
 
 ## 6. Variables d'environnement — **point de sécurité important**
 
