@@ -31,17 +31,12 @@ Backlog (04) ─► choisir une tâche du sprint ─► branche dédiée ─► 
 
 Pas de mention d'outil ou d'assistant dans les noms. Une branche = une intention ; si elle grossit, on la coupe.
 
-### Branches empilées (état actuel)
+### Branches empilées
 
-Les trois branches du Sprint 1 sont empilées : chacune part de la précédente. **Ordre de fusion obligatoire** :
-
-```
-base (plateforme MVP) ──► chore/git-workflow-rules ──► security/platform-hardening ──► docs/platform-process-and-sprints
-```
-
-Fusionner dans cet ordre (ou fusionner directement la dernière, qui contient toutes les autres). Après fusion de la base,
-rebaser la suivante n'est pas nécessaire si la fusion est faite « telle quelle » ; en cas de squash, repartir de la branche
-principale à jour pour les branches suivantes.
+Quand une tâche dépend d'une branche non fusionnée, on part de cette branche et on le dit dans la pull request. La pile du
+Sprint 1 (`chore/git-workflow-rules` → `security/platform-hardening` → `docs/platform-process-and-sprints`) est entièrement
+fusionnée dans `main` : aujourd'hui, chaque nouvelle branche part de `main` à jour. En cas de « Squash and merge » d'une branche
+de base, repartir de `main` à jour pour les branches suivantes.
 
 ## Commits
 
