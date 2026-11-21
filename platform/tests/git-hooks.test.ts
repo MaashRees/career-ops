@@ -120,6 +120,29 @@ describe("pre-push", () => {
     assert.match(r.stderr, /a pour identité/);
     must(["reset", "-q", "--hard", "HEAD~1"]);
   });
+  test("fusionner main dans une branche : les commits DÉJÀ publiés sur main (même signés par un autre) ne bloquent pas le push", () => {
+    // main distant reçoit un commit signé par GitHub (comme une fusion de pull request), publié hors hook.
+    must(["switch", "-q", "main"]);
+    setIdentity("noreply@github.com", "GitHub");
+    assert.equal(commit("Merge pull request #1 from x/y", ["--no-verify"]).status, 0);
+    assert.equal(git(["push", "--no-verify", "origin", "main"]).status, 0);
+    must(["fetch", "-q", "origin"]);
+    setIdentity(OK_EMAIL);
+    must(["switch", "-q", "feat/ok"]);
+    must(["reset", "-q", "--hard", "origin/feat/ok"]);
+    assert.equal(git(["merge", "--no-edit", "origin/main"]).status, 0);
+    const r = git(["push", "origin", "feat/ok"]);
+    assert.equal(r.status, 0, r.stderr);
+  });
+  test("un NOUVEAU commit mal signé reste refusé même après une fusion de main", () => {
+    setIdentity("autre@example.com");
+    assert.equal(commit("chore: nouveau commit mal signé", ["--no-verify"]).status, 0);
+    setIdentity(OK_EMAIL);
+    const r = git(["push", "origin", "feat/ok"]);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /a pour identité/);
+    must(["reset", "-q", "--hard", "HEAD~1"]);
+  });
   test("refuse un commit au mauvais nom glissé via --no-verify", () => {
     setIdentity(OK_EMAIL, "Quelqu'un d'autre");
     assert.equal(commit("chore: mauvais nom", ["--no-verify"]).status, 0);
