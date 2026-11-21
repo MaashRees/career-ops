@@ -13,7 +13,7 @@ chaque personne a **son compte**, **son CV**, **son profil** et **ses candidatur
 | | |
 |---|---|
 | **Comptes** | Accès sur invitation (Supabase Auth) : mot de passe ou lien magique. Pas d'inscription libre. |
-| **Profil & CV** | CV en PDF / texte → converti en markdown par l'IA, **validé par l'utilisateur**. Postes visés, salaire, règles bloquantes. |
+| **Profil & CV** | CV en PDF / texte : converti en markdown, puis **vérifié contre le texte du fichier** (mots coupés, colonnes mélangées, puces cassées, contenu perdu : réparés ; fautes de l'auteur : signalées, jamais corrigées en silence), avec un contrôle des nombres sans modèle. **Validé par l'utilisateur** avant d'être enregistré. Postes visés, salaire, règles bloquantes. |
 | **Analyse d'offre** | URL ou texte collé → rapport noté /5 (rôle, adéquation CV, légitimité de l'annonce, risques…) avec les vrais prompts du moteur. Niveau « essentiel » (~1 min) ou « complet » (~3 min). |
 | **Candidatures** | Tableau de suivi, statuts canoniques du moteur, notes, dédoublonnage par URL. |
 | **Documents** | Lettre de motivation et CV adapté (avec détecteur de chiffres absents du CV d'origine), impression PDF depuis le navigateur. |

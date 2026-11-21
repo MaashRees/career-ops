@@ -191,7 +191,9 @@ export async function fetchPosting(rawUrl: string): Promise<FetchedPosting> {
       "http_error",
       page.status === 404 || page.status === 410
         ? "L'offre est introuvable (404) : elle est probablement clôturée."
-        : `La page a répondu ${page.status} : colle le texte de l'offre à la place.`,
+        : page.status === 401 || page.status === 403 || page.status === 429
+          ? `Ce site refuse la lecture automatique (code ${page.status}) : c'est fréquent sur les grands sites d'emploi. Colle le texte de l'offre à la place.`
+          : `La page a répondu ${page.status} : colle le texte de l'offre à la place.`,
     );
   }
   const extracted = extractPosting(page.body);

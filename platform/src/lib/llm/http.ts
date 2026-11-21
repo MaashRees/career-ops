@@ -1,6 +1,7 @@
 import { LlmError } from "./types.ts";
 
-export const REQUEST_TIMEOUT_MS = 280_000;
+// Une analyse complète peut durer plusieurs minutes (le processus est toujours allumé : pas de limite d'hébergeur).
+export const REQUEST_TIMEOUT_MS = 600_000;
 
 /** Statuts pour lesquels l'autre fournisseur peut prendre le relais. */
 export function isRetryableStatus(status: number, body: string): boolean {

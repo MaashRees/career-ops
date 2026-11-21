@@ -5,6 +5,7 @@ import { deleteDocument } from "@/actions/applications";
 import { ConfirmButton, CopyButton, PrintButton } from "@/components/ClientButtons";
 import { Markdown } from "@/components/Markdown";
 import { requireUser } from "@/lib/auth";
+import { normalizeDashes } from "@/lib/text";
 import { createClient } from "@/lib/supabase/server";
 import type { DocumentRow } from "@/lib/types";
 
@@ -26,7 +27,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-xl font-bold">{isCv ? "CV adapté" : "Lettre de motivation"}</h1>
           <div className="flex flex-wrap gap-2">
-            <CopyButton text={doc.markdown} />
+            <CopyButton text={normalizeDashes(doc.markdown)} />
             <PrintButton label="Imprimer / enregistrer en PDF" />
           </div>
         </div>
@@ -35,7 +36,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         </p>
         {isCv && doc.warnings.length > 0 && (
           <div className="alert alert-error">
-            <p className="font-semibold">Chiffres absents de ton CV d'origine — à vérifier ou supprimer :</p>
+            <p className="font-semibold">Chiffres absents de ton CV d'origine - à vérifier ou supprimer :</p>
             <p className="mt-1">{doc.warnings.join(" · ")}</p>
           </div>
         )}

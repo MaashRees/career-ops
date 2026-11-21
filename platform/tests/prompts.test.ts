@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildEvaluationSystemPrompt, buildEvaluationUserMessage, buildTailoredCvSystemPrompt } from "../src/lib/engine/prompts.ts";
+import { buildCoverLetterSystemPrompt, buildCvImportSystemPrompt, buildEvaluationSystemPrompt, buildEvaluationUserMessage, buildTailoredCvSystemPrompt } from "../src/lib/engine/prompts.ts";
 import { toProfileYaml, type UserSettings } from "../src/lib/engine/profile.ts";
 import { stripToolInstructions } from "../src/lib/engine/strip.ts";
 
@@ -49,6 +49,13 @@ test("le prompt d'évaluation réel contient CV, profil, règles et pas d'outils
   assert.ok(p.length > 50_000 && p.length < 200_000, `taille inattendue : ${p.length}`);
 });
 
+test("les consignes de concision et de note en tête sont présentes", () => {
+  const essential = buildEvaluationSystemPrompt({ settings, depth: "essential" });
+  assert.match(essential, /under about 1,500 words/);
+  assert.match(essential, /Score:\*\* header line FIRST/);
+  assert.match(buildEvaluationSystemPrompt({ settings, depth: "full" }), /under about 4,000 words/);
+});
+
 test("le prompt est identique d'un appel à l'autre (condition du cache de prompt)", () => {
   const a = buildEvaluationSystemPrompt({ settings, depth: "full" });
   const b = buildEvaluationSystemPrompt({ settings, depth: "full" });
@@ -64,11 +71,36 @@ test("le message utilisateur encadre l'offre comme donnée non fiable", () => {
   assert.match(buildEvaluationUserMessage({ jdText: "x", overrideDealbreaker: true }), /evaluate anyway/i);
 });
 
-test("le prompt du CV adapté interdit l'invention", () => {
+test("le prompt du CV adapté interdit l'invention, l'inflation de niveau et le changement d'ordre des postes", () => {
   const p = buildTailoredCvSystemPrompt(settings);
   assert.match(p, /never invent/i);
   assert.match(p, /You may NOT: add skills/);
   assert.match(p, /Jane Dupont/);
+  assert.match(p, /SAME ORDER as the original CV/);
+  assert.match(p, /Never raise the candidate's seniority/);
+  assert.match(p, /do not mix/i);
+});
+
+test("la lettre ne prétend jamais avoir été retenue et soigne sa clôture", () => {
+  const p = buildCoverLetterSystemPrompt(settings);
+  assert.match(p, /NEVER say or imply that the company has already selected/);
+  assert.match(p, /on its own line, then the candidate's full name/);
+});
+
+test("toutes les consignes interdisent le tiret long et le demi-cadratin", () => {
+  const rule = /em dash \(U\+2014\)[^.]*en dash \(U\+2013\)/;
+  assert.match(buildEvaluationSystemPrompt({ settings, depth: "essential" }), rule);
+  assert.match(buildCoverLetterSystemPrompt(settings), rule);
+  assert.match(buildTailoredCvSystemPrompt(settings), rule);
+  assert.match(buildCvImportSystemPrompt(), rule);
+  assert.match(buildEvaluationSystemPrompt({ settings, depth: "full" }), /# Evaluation: \{Company\} - \{Role\}/);
+});
+
+test("l'import de CV garde les titres de section dans la langue du CV", () => {
+  const p = buildCvImportSystemPrompt();
+  assert.match(p, /SAME LANGUAGE as the CV/);
+  assert.match(p, /## Résumé, ## Expérience, ## Formation/);
+  assert.match(p, /Never mix the two languages/);
 });
 
 test("toProfileYaml omet les champs vides", () => {

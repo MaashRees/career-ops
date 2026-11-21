@@ -150,7 +150,9 @@ body {
 
 /* Impression : seul le document s'affiche (Enregistrer en PDF depuis le navigateur). */
 @media print {
-  html, body { background: #fff !important; color: #000 !important; }
+  html, body { background: #fff !important; color: #000 !important; min-height: 0 !important; height: auto !important; }
+  /* Sans ça, la hauteur minimale de l'écran (100dvh) déborde sur une 2e page : le PDF finit avec une page blanche. */
+  .app-shell { min-height: 0 !important; padding-bottom: 0 !important; }
   .no-print { display: none !important; }
   .print-area { border: 0 !important; padding: 0 !important; background: #fff !important; }
   .md { font-size: 10.5pt; }

@@ -8,6 +8,7 @@ import { Markdown } from "@/components/Markdown";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { StatusForm } from "@/components/StatusForm";
 import { requireUser } from "@/lib/auth";
+import { normalizeDashes } from "@/lib/text";
 import { APPLY_MIN, STATUS_LABELS } from "@/lib/states";
 import { createClient } from "@/lib/supabase/server";
 import type { Application, DocumentRow, Report } from "@/lib/types";
@@ -87,7 +88,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                 {docs.map((d) => (
                   <li key={d.id}>
                     <Link href={`/documents/${d.id}`} className="text-accent underline">{KIND_LABEL[d.kind]}</Link>{" "}
-                    <span className="text-muted">— {new Date(d.created_at).toLocaleString("fr-FR")}</span>
+                    <span className="text-muted">- {new Date(d.created_at).toLocaleString("fr-FR")}</span>
                   </li>
                 ))}
               </ul>
@@ -102,7 +103,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
             <h2 id="report-title" className="font-semibold">
               Rapport d'évaluation <span className="text-sm font-normal text-muted">({report.depth === "full" ? "complet" : "essentiel"} · {new Date(report.created_at).toLocaleDateString("fr-FR")})</span>
             </h2>
-            <CopyButton text={report.markdown} label="Copier le rapport" />
+            <CopyButton text={normalizeDashes(report.markdown)} label="Copier le rapport" />
           </div>
           <Markdown>{report.markdown}</Markdown>
         </section>

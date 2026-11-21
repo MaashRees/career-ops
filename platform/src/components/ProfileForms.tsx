@@ -6,9 +6,9 @@ import type { Tier } from "@/lib/env";
 import { ActionForm, SubmitButton } from "./forms";
 
 const TIER_LABELS: Record<Tier, string> = {
-  economy: "Économique — le plus rapide et le moins cher",
-  standard: "Standard — équilibré (recommandé)",
-  premium: "Premium — le plus capable, plus lent et plus cher",
+  economy: "Économique - le plus rapide et le moins cher",
+  standard: "Standard - équilibré (recommandé)",
+  premium: "Premium - le plus capable, plus lent et plus cher",
 };
 
 export function CvForms({ cv }: { cv: string }) {
@@ -26,7 +26,7 @@ export function CvForms({ cv }: { cv: string }) {
       <ActionForm action={saveCv}>
         <div>
           <label className="label" htmlFor="cv_md">Mon CV (markdown ou texte)</label>
-          <textarea id="cv_md" name="cv_md" rows={18} defaultValue={cv} className="input font-mono text-sm" placeholder={"# Prénom Nom\n\n## Experience\n### Entreprise — Ville\n**Poste**\n2021 – 2024\n- Réalisation…"} />
+          <textarea id="cv_md" name="cv_md" rows={18} defaultValue={cv} className="input font-mono text-sm" placeholder={"# Prénom Nom\n\n## Experience\n### Entreprise - Ville\n**Poste**\n2021 - 2024\n- Réalisation…"} />
           <p className="hint">C'est la seule source de vérité : l'IA ne doit jamais rien ajouter qui n'y figure pas.</p>
         </div>
         <SubmitButton pending="Enregistrement…">Enregistrer le CV</SubmitButton>

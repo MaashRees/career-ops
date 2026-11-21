@@ -3,7 +3,9 @@
  * du document généré doit exister dans le CV d'origine. Ne prouve pas que tout
  * est exact, mais attrape l'invention la plus fréquente (un chiffre, une date).
  */
-const NUMBER_RE = /\d[\d\s.,]*\d|\d/g;
+// Un nombre = un groupe de chiffres, avec séparateurs de milliers (espace, point, virgule) SEULEMENT s'ils précèdent
+// exactement 3 chiffres : « 1 200 000 » et « 1.200.000 » sont le même nombre ; « 2019 2024 » en font deux.
+const NUMBER_RE = /\d{1,3}(?:[ \u00a0\u202f.,]\d{3})+(?!\d)|\d+(?:[.,]\d+)?/g;
 
 function normalizeNumber(raw: string): string {
   return raw.replace(/[\s.,]/g, "");
