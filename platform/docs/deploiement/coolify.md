@@ -146,6 +146,12 @@ Application → **Environment Variables** → colle les variables du modèle (vu
 > « Runtime only »** (non disponible pendant le build) : l'image de cette application n'a besoin d'aucune variable pour être
 > construite.
 
+Dans Coolify 4.7 les variables sont listées dans un tableau avec les colonnes **Buildtime** et **Runtime**. Une variable fraîchement
+ajoutée a les **deux cases cochées** : ouvre l'icône ⚙ (Actions) de chaque variable et **décoche l'option de build**
+(« Available during build »), pour ne garder que **Runtime**. Vérifie ensuite dans le tableau : la colonne **Buildtime** doit être vide
+pour les 13 variables (au minimum pour `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` et `OPENROUTER_API_KEY`).
+Le bandeau **Changes pending** signifie qu'il faut **Redeploy**.
+
 Après un changement de variable « runtime », utilise **Restart** (pas besoin de reconstruire).
 
 ## 7. Sonde de santé
@@ -156,11 +162,16 @@ Application → **Healthcheck** :
 |---|---|
 | Type | HTTP |
 | Method / Scheme | GET / http |
-| Host | `localhost` |
+| Host | **`127.0.0.1`** (⚠️ pas `localhost`) |
 | Port | `3000` |
 | Path | `/api/health` |
 
-**Save changes**, puis **Enable** et confirme. (La commande de santé du `Dockerfile` est remplacée tant que celle du tableau de bord est
+**Save changes**, puis **Enable** et confirme.
+
+> ⚠️ **Utilise `127.0.0.1` et non `localhost`.** Dans l'image (Alpine), `localhost` est résolu en IPv6 (`::1`) alors que le serveur
+> écoute en IPv4 (`0.0.0.0`) : la sonde échoue avec « `wget: can't connect to remote host: Connection refused` » et Coolify annule le
+> déploiement (« New container is unhealthy »), alors que l'application tourne très bien (le journal du conteneur affiche
+> « Ready »). La ligne « `curl: not found` » qui précède est sans importance : Coolify essaie `curl`, puis se rabat sur `wget`. (La commande de santé du `Dockerfile` est remplacée tant que celle du tableau de bord est
 activée ; l'image contient `wget`, nécessaire à la sonde HTTP.)
 
 ## 8. Domaine de l'application et `SITE_URL`
@@ -214,6 +225,6 @@ Protège les autres applications du serveur d'une dérive de mémoire.
 | Certificat HTTPS non émis | DNS ne pointe pas encore sur le serveur, ports 80/443 fermés | Vérifier le DNS et le pare-feu, redéployer |
 | 502 / « no available server » | Port exposé incorrect ou application qui ne démarre pas | `Ports Exposes` = 3000 ; lire *Runtime Logs* |
 | Build échoue, Dockerfile introuvable | *Base Directory* / *Dockerfile Location* | `/platform` et `/Dockerfile` |
-| Sonde de santé en échec | `wget` ou chemin incorrect | Path `/api/health`, port 3000 |
+| Sonde de santé en échec (`wget: can't connect … Connection refused`) | Host `localhost` (résolu en IPv6) | Host **`127.0.0.1`**, path `/api/health`, port 3000 |
 | 503 « Configuration incomplète » | Variable manquante | Ajouter (en *Runtime only*), *Restart* |
 | Disque plein | Anciennes images Docker | Réduire *Images to keep*, nettoyer depuis le serveur |
