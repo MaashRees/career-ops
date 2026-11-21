@@ -44,14 +44,14 @@ export async function callAnthropic(
     .map((b) => b.text)
     .join("");
   if (!text.trim()) throw new LlmError("Réponse vide du modèle", { retryable: true });
-  if (data.stop_reason === "max_tokens") {
-    throw new LlmError("Réponse tronquée (limite de longueur atteinte) : relance en mode « essentiel ».", {
-      retryable: false,
-    });
+  const truncated = data.stop_reason === "max_tokens";
+  if (truncated && !req.allowTruncated) {
+    throw new LlmError("Réponse tronquée (limite de longueur atteinte).", { retryable: false });
   }
 
   return {
     text,
+    truncated,
     provider: "anthropic",
     model,
     usage: {

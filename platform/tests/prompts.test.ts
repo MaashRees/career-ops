@@ -49,6 +49,13 @@ test("le prompt d'évaluation réel contient CV, profil, règles et pas d'outils
   assert.ok(p.length > 50_000 && p.length < 200_000, `taille inattendue : ${p.length}`);
 });
 
+test("les consignes de concision et de note en tête sont présentes", () => {
+  const essential = buildEvaluationSystemPrompt({ settings, depth: "essential" });
+  assert.match(essential, /under about 1,500 words/);
+  assert.match(essential, /Score:\*\* header line FIRST/);
+  assert.match(buildEvaluationSystemPrompt({ settings, depth: "full" }), /under about 4,000 words/);
+});
+
 test("le prompt est identique d'un appel à l'autre (condition du cache de prompt)", () => {
   const a = buildEvaluationSystemPrompt({ settings, depth: "full" });
   const b = buildEvaluationSystemPrompt({ settings, depth: "full" });

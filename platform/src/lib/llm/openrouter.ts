@@ -55,10 +55,9 @@ export async function callOpenRouter(
   const choice = data.choices?.[0];
   const text = choice?.message?.content ?? "";
   if (!text.trim()) throw new LlmError("Réponse vide du modèle", { retryable: true });
-  if (choice?.finish_reason === "length") {
-    throw new LlmError("Réponse tronquée (limite de longueur atteinte) : relance en mode « essentiel ».", {
-      retryable: false,
-    });
+  const truncated = choice?.finish_reason === "length";
+  if (truncated && !req.allowTruncated) {
+    throw new LlmError("Réponse tronquée (limite de longueur atteinte).", { retryable: false });
   }
 
   const details = data.usage?.prompt_tokens_details;
@@ -66,6 +65,7 @@ export async function callOpenRouter(
   const cacheWrite = details?.cache_write_tokens ?? 0;
   return {
     text,
+    truncated,
     provider: "openrouter",
     model,
     usage: {

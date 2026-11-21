@@ -172,11 +172,16 @@ async function runEvaluate(db: Db, run: Run) {
     system: buildEvaluationSystemPrompt({ settings, depth }),
     user: buildEvaluationUserMessage({ jdText, url, overrideDealbreaker: !!input.override_dealbreaker }),
     tier,
-    maxTokens: depth === "full" ? 16_000 : 9_000,
+    maxTokens: depth === "full" ? 24_000 : 12_000,
+    allowTruncated: true,
   });
 
-  const text = unwrapFence(res.text);
+  let text = unwrapFence(res.text);
   const verdict = validateReport(text);
+  if (!verdict.ok && res.truncated) {
+    // Coupé AVANT la note : inexploitable. L'analyse a déjà coûté, on le dit clairement.
+    throw new RunFailure("truncated", "L'analyse a dépassé la limite de longueur avant d'aboutir. Relance-la (le niveau « essentiel » est le plus court).");
+  }
   if (!verdict.ok) {
     if (verdict.code === "needs_confirmation") {
       const detail = verdict.confirmation ?? "";
@@ -188,6 +193,10 @@ async function runEvaluate(db: Db, run: Run) {
       );
     }
     throw new RunFailure("bad_report", `Analyse rejetée : ${verdict.reason} Relance-la.`);
+  }
+
+  if (res.truncated) {
+    text = `${text.trimEnd()}\n\n> ⚠️ **Rapport tronqué** : le modèle a atteint sa limite de longueur, la fin du rapport manque (la note et les premiers blocs sont complets).`;
   }
 
   const parsed = parseReport(text);

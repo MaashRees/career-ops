@@ -34,8 +34,14 @@ const DEPTH_NOTES: Record<Depth, string> = {
     "DEPTH: ESSENTIAL. Write ONLY: the header fields, the Verdict (lead), A) Role Summary, B) Match with CV,",
     "G) Posting Legitimacy (concise), Risk Summary and Score Evidence. SKIP blocks C, D, E, F, the cover letter draft,",
     "H) draft answers and keyword sections. Keep every row honest: unknown stays unknown.",
+    "BE CONCISE: the whole report must stay under about 1,500 words — compact tables, no repetition between blocks,",
+    "no restating the job posting. Put the **Score:** header line FIRST (before the blocks), so it is never lost.",
   ].join(" "),
-  full: "DEPTH: FULL. Write the complete evaluation, blocks A through G, Risk Summary and Score Evidence. Skip only the sections forbidden by the platform note.",
+  full: [
+    "DEPTH: FULL. Write the complete evaluation, blocks A through G, Risk Summary and Score Evidence.",
+    "Skip only the sections forbidden by the platform note. Stay under about 4,000 words: compact tables, no repetition.",
+    "Put the **Score:** header line FIRST (before the blocks), so it is never lost.",
+  ].join(" "),
 };
 
 export interface EvaluationPromptInput {
