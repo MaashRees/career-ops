@@ -109,6 +109,13 @@ test("les clients Supabase visent le schéma dédié, et aucun code n'adresse «
   assert.deepEqual(bad, []);
 });
 
+test("impression : la mise en page de l'application ne déborde pas sur une page blanche", () => {
+  const css = readFileSync(path.join(SRC, "app/globals.css"), "utf8");
+  const print = css.slice(css.indexOf("@media print"));
+  assert.match(print, /\.app-shell\s*\{[^}]*min-height:\s*0/);
+  assert.match(read(path.join(SRC, "app/(app)/layout.tsx")), /app-shell/);
+});
+
 test("en-têtes de sécurité : CSP stricte, HSTS, anti-framing", () => {
   const cfg = readFileSync(path.join(ROOT, "next.config.mjs"), "utf8");
   for (const needle of ["Content-Security-Policy", "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:", "base-uri 'self'", "form-action 'self'", "Strict-Transport-Security", "X-Content-Type-Options", "Permissions-Policy"]) {

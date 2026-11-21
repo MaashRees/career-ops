@@ -13,7 +13,7 @@ const NAV = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   return (
-    <div className="mx-auto min-h-dvh max-w-5xl px-4 pb-16">
+    <div className="app-shell mx-auto min-h-dvh max-w-5xl px-4 pb-16">
       <header className="no-print flex flex-wrap items-center justify-between gap-3 py-4">
         <nav aria-label="Navigation principale" className="flex flex-wrap items-center gap-1">
           <Link href="/" className="mr-3 text-lg font-bold">Chasseur d'emploi</Link>
