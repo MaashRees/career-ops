@@ -1,11 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { sessionCookieOptions, supabasePublishableKey, supabaseUrl } from "@/lib/env";
+import { dbSchema, sessionCookieOptions, supabasePublishableKey, supabaseUrl } from "@/lib/env";
 
 /** Client Supabase lié à la session de l'utilisateur (cookies) : soumis à la RLS. */
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient> {
   const cookieStore = await cookies();
+  // Pas de types de base générés : le client est typé « générique » ; le schéma réel est celui de dbSchema().
   return createServerClient(supabaseUrl(), supabasePublishableKey(), {
+    // Schéma dédié (jamais « public ») : voir supabase/migrations/0003.
+    db: { schema: dbSchema() },
     cookieOptions: sessionCookieOptions(),
     cookies: {
       getAll() {
@@ -20,5 +24,5 @@ export async function createClient() {
         }
       },
     },
-  });
+  }) as unknown as SupabaseClient;
 }

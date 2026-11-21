@@ -16,7 +16,7 @@
 |---|---|---|
 | **Next.js 16** (App Router, Server Actions) | Pages, formulaires, API de suivi, tâches en arrière-plan | `platform/src` |
 | **Supabase Auth** | Invitations, mot de passe, lien magique, sessions (cookies `httpOnly`) | `src/lib/supabase`, `src/actions/auth.ts` |
-| **Supabase Postgres** | Données + isolation par RLS + fonction `start_run` | `platform/supabase` |
+| **Supabase Postgres** | Données dans le **schéma dédié `jobhunter`** (jamais `public`) + isolation par RLS + fonction `start_run` | `platform/supabase` |
 | **Moteur career-ops** | Prompts d'évaluation (`engine/modes/*.md`), copiés par `npm run sync-engine` | `platform/engine` |
 | **Fournisseurs IA** | Appels `messages` (Anthropic) et `chat/completions` (OpenRouter), avec repli | `src/lib/llm` |
 
@@ -75,6 +75,7 @@ platform/
 | A5 | **Prompts du moteur copiés dans `engine/`** | Import direct de `../modes` | L'app reste déployable seule ; mise à jour explicite par `npm run sync-engine` |
 | A6 | **PDF = impression du navigateur** | Chromium sur le serveur | Pas de navigateur à héberger ; suffisant pour un CV/une lettre |
 | A7 | **Rendu markdown sans HTML ni image** | Rendu riche | Anti-injection et anti-exfiltration (le contenu vient d'un modèle qui lit des textes non fiables) |
+| A9 | **Schéma dédié `jobhunter`, jamais `public`** | Tables dans `public` | `public` est exposé par défaut par l'API Supabase ; un schéma dédié n'est exposé que sur ton action et n'a aucun droit par défaut |
 | A8 | **Une instance** | Plusieurs instances | Limiteur de connexions et analyses en processus supposent une instance ; levier de montée en charge documenté ci-dessous |
 
 ## Limites connues et montée en charge

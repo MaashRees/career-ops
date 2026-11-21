@@ -101,6 +101,14 @@ test("le démarrage d'une analyse passe par la fonction SQL atomique start_run",
   assert.doesNotMatch(src, /from\("runs"\)\s*\.insert/);
 });
 
+test("les clients Supabase visent le schéma dédié, et aucun code n'adresse « public » (sauf l'API d'auth)", () => {
+  for (const f of ["lib/supabase/server.ts", "lib/supabase/admin.ts"]) {
+    assert.match(read(path.join(SRC, f)), /db:\s*\{\s*schema:\s*dbSchema\(\)\s*\}/, `${f} doit fixer db.schema`);
+  }
+  const bad = files.filter((f) => /\.schema\(\s*["']public["']\s*\)|from\(\s*["']public\./.test(read(f))).map(rel);
+  assert.deepEqual(bad, []);
+});
+
 test("en-têtes de sécurité : CSP stricte, HSTS, anti-framing", () => {
   const cfg = readFileSync(path.join(ROOT, "next.config.mjs"), "utf8");
   for (const needle of ["Content-Security-Policy", "frame-ancestors 'none'", "object-src 'none'", "img-src 'self' data:", "base-uri 'self'", "form-action 'self'", "Strict-Transport-Security", "X-Content-Type-Options", "Permissions-Policy"]) {

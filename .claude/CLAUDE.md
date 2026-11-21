@@ -37,6 +37,16 @@ Premier réglage sur un clone neuf : `sh platform/scripts/install-git-hooks.sh`.
   - `platform/supabase/migrations/NNNN_description.sql` — idempotent (rejouable sans erreur), commenté en français ;
   - `platform/supabase/verify/NNNN_description.sql` — requêtes de vérification **en lecture seule** à lancer après ;
   - `platform/supabase/rollback/NNNN_description.sql` — retour arrière (ou une note expliquant pourquoi il est impossible).
+- **Tout objet SQL vit dans le schéma dédié `jobhunter` — JAMAIS dans `public`** (tables, fonctions, vues, types, index,
+  déclencheurs, politiques). Toujours qualifier les noms (`jobhunter.applications`) ; jamais de `create … public.xxx`.
+  - Un schéma dédié n'a **aucun droit par défaut** : chaque script accorde explicitement le strict nécessaire
+    (`revoke all … from public, anon, authenticated` puis `grant` minimal ; seul `service_role` écrit les tables serveur).
+  - Fonctions : `set search_path = ''` (tout est qualifié) ; réservées au serveur → `revoke … from public, anon, authenticated`
+    puis `grant execute … to service_role`. Chaque table : RLS activée + politiques + plafonds de taille + test d'isolation.
+  - Le schéma doit être ajouté par l'utilisateur dans Supabase → Project Settings → API → « Exposed schemas » : le rappeler
+    à chaque livraison qui ajoute un schéma, et vérifier avec `platform/scripts/supabase-exposure-check.sh`.
+  - Les scripts `0001` et `0002` (déjà livrés) créent dans `public` : ils ne sont **pas modifiés** ; `0003` déplace tout dans
+    `jobhunter`. Ne jamais les rejouer après `0003`.
 - Numérotation continue, jamais de modification d'un script déjà livré : on ajoute `NNNN+1`.
 - Chaque script est **testé localement sur PGlite** (Postgres en mémoire, `platform/tests/`) : ce n'est pas la base réelle.
 - À chaque livraison de script : mettre à jour `platform/docs/06-base-de-donnees.md` (ordre d'exécution, ce qu'il change,
@@ -59,6 +69,7 @@ Premier réglage sur un clone neuf : `sh platform/scripts/install-git-hooks.sh`.
 
 - La clé `service_role` et les clés IA ne sortent jamais du serveur : aucun composant `"use client"` ne les importe
   (un test le vérifie).
+- Les clients Supabase visent le schéma dédié (`db.schema = dbSchema()`), jamais `public` (un test le vérifie).
 - Toute lecture/écriture d'une donnée utilisateur passe par la RLS ; le client « admin » n'est utilisé que pour les
   tâches serveur, avec un filtre `user_id` explicite.
 - Toute entrée utilisateur est validée (type, longueur, format) côté serveur. Tout texte d'offre ou de CV est une

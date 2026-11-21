@@ -48,7 +48,12 @@ Navigateur ─► Next.js (Docker, toujours allumé) ──► Supabase (Europe)
 2. **SQL Editor** → exécute **dans l'ordre**, un script à la fois (rejouables sans risque) :
    1. [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — tables et règles d'isolation (RLS) ;
    2. [`supabase/migrations/0002_security_hardening.sql`](supabase/migrations/0002_security_hardening.sql) — quotas atomiques,
-      plafonds de taille, droits restreints (**obligatoire** : l'app appelle la fonction `start_run`).
+      plafonds de taille, droits restreints (**obligatoire** : l'app appelle la fonction `start_run`) ;
+   3. [`supabase/migrations/0003_dedicated_schema.sql`](supabase/migrations/0003_dedicated_schema.sql) — **déplace tout dans le
+      schéma dédié `jobhunter`** (jamais `public`), droits minimaux. Ne rejoue plus 0001/0002 ensuite.
+
+   **Puis, à la main** : *Project Settings → API → Exposed schemas* → ajoute `jobhunter` (et retire `public` s'il ne sert
+   à rien d'autre). Contrôle : `sh scripts/supabase-exposure-check.sh <URL> <clé publishable>`. Détail : [`docs/06`](docs/06-base-de-donnees.md).
 
    Après chaque script, lance son contrôle en lecture seule dans [`supabase/verify/`](supabase/verify/) :
    toutes les lignes doivent afficher `ok = true`. Les retours arrière sont dans [`supabase/rollback/`](supabase/rollback/).
@@ -88,6 +93,7 @@ Copie [`.env.example`](.env.example) en `.env` (ou saisis ces variables chez ton
 |---|---|
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Connexion à Supabase (clé publique, soumise à la RLS) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Secrète.** Écritures serveur. Jamais côté navigateur. |
+| `SUPABASE_DB_SCHEMA` | Schéma Postgres de l'app (défaut `jobhunter`, créé par le script 0003) |
 | `SITE_URL` | URL publique en https, identique au *Site URL* Supabase |
 | `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` | Au moins une des deux. Les deux = bascule automatique en cas de panne. |
 | `LLM_PROVIDER` | `anthropic` (défaut) ou `openrouter` : fournisseur principal |
@@ -175,7 +181,7 @@ cp .env.example .env      # remplir avec un projet Supabase de test
 npm ci
 npm run dev               # http://localhost:3000
 npm run typecheck
-npm test                  # 120+ tests : parsing, SSRF, prompts, IA mockée, flux complet, RLS et quotas sur Postgres, garde-fous de sécurité
+npm test                  # 150+ tests : parsing, SSRF, prompts, IA mockée, flux complet, RLS et quotas sur Postgres, garde-fous de sécurité
 ```
 
 ## Limites connues / pistes

@@ -10,6 +10,7 @@ import path from "node:path";
 import { after, describe, test } from "node:test";
 
 const SCRIPT = path.resolve(import.meta.dirname, "..", "scripts", "post-deploy-check.sh");
+const EXPOSURE = path.resolve(import.meta.dirname, "..", "scripts", "supabase-exposure-check.sh");
 const SECURE_HEADERS = {
   "content-security-policy": "default-src 'self'; frame-ancestors 'none'",
   "x-content-type-options": "nosniff",
@@ -34,10 +35,10 @@ async function start(handler: (req: IncomingMessage, res: ServerResponse) => voi
   return `http://127.0.0.1:${(s.address() as AddressInfo).port}`;
 }
 // spawnSync bloquerait la boucle d'événements du faux serveur : on passe par un processus asynchrone.
-function run(url: string): Promise<{ status: number | null; out: string }> {
+function run(url: string, script = SCRIPT, extra: string[] = []): Promise<{ status: number | null; out: string }> {
   return new Promise((resolve) => {
     import("node:child_process").then(({ spawn }) => {
-      const p = spawn("sh", [SCRIPT, url]);
+      const p = spawn("sh", [script, url, ...extra]);
       let out = "";
       p.stdout.on("data", (d) => (out += d));
       p.stderr.on("data", (d) => (out += d));
@@ -78,5 +79,48 @@ describe("post-deploy-check.sh", () => {
     const { status, out } = await run("http://127.0.0.1:9");
     assert.equal(status, 1);
     assert.match(out, /ne répond pas correctement/);
+  });
+});
+
+// Faux « Supabase » : se comporte comme PostgREST selon le profil de schéma demandé.
+function fakeSupabase(mode: "good" | "public-exposed" | "schema-not-exposed" | "anon-readable") {
+  return (req: IncomingMessage, res: ServerResponse) => {
+    const profile = String(req.headers["accept-profile"] ?? req.headers["content-profile"] ?? "public");
+    const url = req.url ?? "";
+    const json = (code: number, body: unknown) => void res.writeHead(code, { "content-type": "application/json" }).end(JSON.stringify(body));
+    if (url === "/rest/v1/") return json(200, { paths: mode === "public-exposed" ? { "/applications": {}, "/runs": {} } : { "/": {} } });
+    if (profile === "public") return mode === "public-exposed" ? json(200, []) : json(404, { code: "PGRST205" });
+    if (mode === "schema-not-exposed") return json(406, { code: "PGRST106" });
+    if (mode === "anon-readable") return json(200, [{ id: 1 }]);
+    return json(401, { code: "42501", message: "permission denied for schema jobhunter" });
+  };
+}
+
+describe("supabase-exposure-check.sh", () => {
+  test("sans argument : usage et code 2", () => {
+    assert.equal(spawnSync("sh", [EXPOSURE], { encoding: "utf8" }).status, 2);
+  });
+  test("configuration conforme : tout est ✓", async () => {
+    const { status, out } = await run(await start(fakeSupabase("good")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 0, out);
+    assert.match(out, /Exposition conforme/);
+    assert.match(out, /exposé mais fermé aux anonymes/);
+  });
+  test("tables restées dans public : échec", async () => {
+    const { status, out } = await run(await start(fakeSupabase("public-exposed")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 1);
+    assert.match(out, /public expose encore des tables/);
+    assert.match(out, /lisible dans public/);
+  });
+  test("schéma dédié non exposé (406) : échec avec la marche à suivre", async () => {
+    const { status, out } = await run(await start(fakeSupabase("schema-not-exposed")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 1);
+    assert.match(out, /PAS exposé/);
+    assert.match(out, /Exposed schemas/);
+  });
+  test("données lisibles par un anonyme : échec", async () => {
+    const { status, out } = await run(await start(fakeSupabase("anon-readable")), EXPOSURE, ["cle-publique"]);
+    assert.equal(status, 1);
+    assert.match(out, /lisibles/);
   });
 });

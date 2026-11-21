@@ -85,6 +85,7 @@ la première semaine.)*
 SUPABASE_URL=https://xxxxxxxx.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 SUPABASE_SERVICE_ROLE_KEY=            # secrète
+SUPABASE_DB_SCHEMA=jobhunter          # schéma dédié (script 0003)
 SITE_URL=https://ton-domaine          # https, sans slash final
 ANTHROPIC_API_KEY=                    # secrète
 OPENROUTER_API_KEY=                   # secrète

@@ -14,7 +14,7 @@ export function sqlFile(...parts: string[]): string {
  * Applique les migrations demandées dans l'ordre (chacune deux fois : elles doivent être rejouables).
  */
 export async function createDb(
-  migrations: string[] = ["0001_init.sql", "0002_security_hardening.sql"],
+  migrations: string[] = ["0001_init.sql", "0002_security_hardening.sql", "0003_dedicated_schema.sql"],
   preSql = "", // exécuté AVANT les migrations (ex. utilisateurs déjà existants)
 ): Promise<PGlite> {
   const db = new PGlite();

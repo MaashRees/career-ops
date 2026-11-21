@@ -10,7 +10,7 @@ Définition de « terminé » : [03](03-processus-de-travail.md#définition-de--
 |---|---|---|---|
 | **0** | Fondations : application complète et testée | 10 / 10 | ✅ terminé |
 | **1** | Sécurité et processus : audit, correctifs, règles Git, documentation | 13 / 13 | ✅ terminé (branches poussées, **fusion à faire par toi**) |
-| **2** | Mise en production et validation réelle | 0 / 12 | ⏳ prochain |
+| **2** | Mise en production et validation réelle | 0 / 13 | ⏳ prochain |
 | **3** | Scanner d'offres partagé | 0 / 6 | ⏳ |
 | **4** | Suivi avancé et préparation d'entretien | 0 / 6 | ⏳ |
 | **5** | RGPD, robustesse et montée en charge | 0 / 7 | ⏳ |
@@ -64,6 +64,7 @@ Branches (empilées, dans cet ordre) : `chore/git-workflow-rules` → `security/
 | [ ] S2-01 | Créer le projet Supabase (région UE) ; sauvegarder le mot de passe de la base | Toi | Projet créé, région UE vérifiée |
 | [ ] S2-02 | Exécuter `0001_init.sql` puis `verify/0001_init.sql` | Toi | Toutes les lignes `ok = true` |
 | [ ] S2-03 | Exécuter `0002_security_hardening.sql` puis `verify/0002_security_hardening.sql` | Toi | Toutes les lignes `ok = true` |
+| [ ] S2-03b | Exécuter `0003_dedicated_schema.sql` (tout dans le schéma `jobhunter`), **ajouter `jobhunter` aux « Exposed schemas »**, `verify/0003`, puis `scripts/supabase-exposure-check.sh` | Toi | `verify/0003` tout `true` ; script d'exposition tout ✓ ; l'application voit ses tables |
 | [ ] S2-04 | Configurer Auth : inscriptions désactivées, *Site URL*, *Redirect URLs*, 3 modèles d'e-mail | Toi (guide : README §1) | Une invitation de test mène bien à la création du mot de passe |
 | [ ] S2-05 | SMTP dédié (Resend, Brevo…) pour des e-mails fiables | Toi | E-mail d'invitation reçu en boîte principale |
 | [ ] S2-06 | Choisir l'hébergeur ([08](08-deploiement.md)), variables d'environnement, déploiement du conteneur, sonde `/api/health`, une seule instance toujours allumée | Toi (guides : [Railway](deploiement/railway.md) ou [Coolify](deploiement/coolify.md)) | `/api/health` = `{"ok":true}` ; `/login` répond en https |
@@ -126,4 +127,5 @@ support Netlify (exécution des analyses dans une fonction d'arrière-plan — v
 |---|---|
 | Sprint 1 | Le propriétaire exécute tous les scripts SQL ; l'assistant ne touche jamais à la base |
 | Sprint 1 | Les quotas passent en SQL atomique (défaut trouvé à l'audit) |
+| Après Sprint 1 | **Tout le SQL dans le schéma dédié `jobhunter`, jamais `public`** (0003) ; règle ajoutée aux consignes de travail |
 | Sprint 1 | Production « échoue fermé » : mieux vaut ne pas démarrer que démarrer ouvert |

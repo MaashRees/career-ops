@@ -47,6 +47,7 @@ Légende : ✅ implémenté et vérifié · 🟡 configuration/action de ta part
 | D-04 | Appeler les fonctions SQL sensibles | `start_run` réservée à `service_role` ; `handle_new_user` retirée aux rôles API | `db-security.test.ts` ; `verify/0002` | ✅ · 🟡 à exécuter |
 | D-05 | Données résiduelles après départ | Suppression d'un compte = suppression en cascade de tout | `rls.test.ts` | ✅ |
 | D-06 | Perte de données | Sauvegardes Supabase | — | 🟡 voir checklist |
+| D-08 | **Exposition par l'API automatique** : `public` est exposé par défaut à qui a la clé publique | Tout dans un **schéma dédié** `jobhunter` (non exposé tant que tu ne l'ajoutes pas), **aucun droit pour `anon`**, droits minimaux pour `authenticated`, fonctions réservées à `service_role` ; clients de l'app fixés sur ce schéma | `db-schema.test.ts`, `db-client.test.ts`, `verify/0003`, `scripts/supabase-exposure-check.sh` | ✅ code · 🟡 exécuter 0003 + « Exposed schemas » |
 | D-07 | Interception / lecture du disque | HTTPS (hébergeur), chiffrement au repos (Supabase) | délégué aux fournisseurs | ⚪ |
 
 ### Entrées, contenus et sorties
@@ -116,6 +117,7 @@ Légende : ✅ implémenté et vérifié · 🟡 configuration/action de ta part
 - Les appels réels aux fournisseurs IA (les tests utilisent des réponses simulées) et la lecture de vraies pages d'offres.
 - Le build Docker lui-même (pas de démon Docker dans l'environnement) : les étapes ont été reproduites à la main.
 - Le comportement du verrou SQL en concurrence réelle (R-02).
+- L'exposition réelle de l'API de ton projet (le script `supabase-exposure-check.sh` est à lancer contre ta base).
 
 Ces points sont des tâches du Sprint 2 (S2-04, S2-06, S2-08, S2-10).
 
@@ -125,7 +127,9 @@ Ces points sont des tâches du Sprint 2 (S2-04, S2-06, S2-08, S2-10).
 
 **Supabase**
 - [ ] Projet en région UE
-- [ ] `0001` puis `0002` exécutés ; `verify/0001` et `verify/0002` : toutes les lignes `ok = true`
+- [ ] `0001`, `0002` puis `0003` exécutés ; `verify/0003` : toutes les lignes `ok = true`
+- [ ] **Exposed schemas** (Project Settings → API) : `jobhunter` ajouté, `public` retiré s'il ne sert à rien d'autre
+- [ ] `sh platform/scripts/supabase-exposure-check.sh <URL> <clé publishable>` : tout ✓ (aucune table dans `public`, `jobhunter` fermé aux anonymes)
 - [ ] « Allow new users to sign up » **désactivé**
 - [ ] *Site URL* et *Redirect URLs* = l'URL https de l'app (rien d'autre)
 - [ ] Les 3 modèles d'e-mail (invitation, lien magique, récupération) pointent vers `/auth/confirm`

@@ -123,6 +123,17 @@ export function modelFor(provider: Provider, tier: Tier): string {
   return override || DEFAULT_MODELS[provider][tier];
 }
 
+/**
+ * Schéma Postgres dédié de l'application (jamais « public » : voir supabase/migrations/0003).
+ * Doit être listé dans Supabase → Project Settings → API → « Exposed schemas ».
+ * Valeur validée (identifiant SQL simple) : elle part dans un en-tête HTTP vers l'API.
+ */
+export const DEFAULT_DB_SCHEMA = "jobhunter";
+export function dbSchema(): string {
+  const v = clean(process.env.SUPABASE_DB_SCHEMA);
+  return /^[a-z_][a-z0-9_]{0,62}$/.test(v) ? v : DEFAULT_DB_SCHEMA;
+}
+
 export function supabaseUrl(): string {
   return clean(process.env.SUPABASE_URL) || clean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 }
