@@ -1,0 +1,14 @@
+#!/bin/sh
+# Refuse co-auteur, trailers de session et toute mention de Claude / Anthropic dans le message.
+. "$(dirname "$0")/_lib.sh"
+
+# On ignore les lignes de commentaire git (#...) ajoutées par l'éditeur.
+if grep -v '^#' "$1" | grep -Eiq "$FORBIDDEN_MESSAGE_PATTERNS"; then
+  hit=$(grep -v '^#' "$1" | grep -Eio "$FORBIDDEN_MESSAGE_PATTERNS" | head -1)
+  die "Message de commit refusé : contient « $hit »." \
+      "Pas de Co-Authored-By, de trailer de session ni de mention de Claude/Anthropic."
+fi
+if [ ! -s "$1" ] || ! grep -v '^#' "$1" | grep -q '[^[:space:]]'; then
+  die "Message de commit vide."
+fi
+exit 0

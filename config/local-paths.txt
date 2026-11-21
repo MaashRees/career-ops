@@ -1,0 +1,8 @@
+# Fichiers de CE fork que le dépôt amont (career-ops) ne livre pas.
+# Un chemin par ligne ; un "/" final = tout ce qui est dessous. Voir DATA_CONTRACT.md → "Fork-local paths".
+
+# Plateforme web multi-comptes (Next.js + Supabase) construite sur le moteur.
+platform/
+
+# Règles de travail propres à ce fork (Git, identité, base de données) — voir ce fichier.
+.claude/CLAUDE.md

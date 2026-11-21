@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.env
+.env.local
+.env.*.local
+next-env.d.ts
+*.tsbuildinfo
+
+# Le .gitignore racine ignore package-lock.json ; ici il est nécessaire (npm ci dans le Dockerfile).
+!package-lock.json
